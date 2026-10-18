@@ -18,14 +18,12 @@ export class CityRepository {
             key: city.key,
             nameHe: city.nameHe,
             nameEn: city.nameEn,
-            lat: city.lat,
-            lng: city.lng,
           };
         }),
       )
       .onConflictDoUpdate({
         target: cities.key,
-        set: { ...excludedSet(cities, ['nameHe', 'nameEn', 'lat', 'lng']), updatedAt: sql`now()` },
+        set: { ...excludedSet(cities, ['nameHe', 'nameEn']), updatedAt: sql`now()` },
       })
       .returning({ id: cities.id, key: cities.key });
 

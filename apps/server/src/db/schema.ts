@@ -37,8 +37,6 @@ export const cities = pgTable('cities', {
   key: text('key').notNull().unique(),
   nameHe: text('name_he').notNull(),
   nameEn: text('name_en').notNull(),
-  lat: doublePrecision('lat'),
-  lng: doublePrecision('lng'),
   ...timestamps,
 });
 
