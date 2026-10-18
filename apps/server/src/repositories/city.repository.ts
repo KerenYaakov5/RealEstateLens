@@ -1,9 +1,16 @@
-import { sql } from 'drizzle-orm';
+import { and, eq, isNotNull, isNull, sql } from 'drizzle-orm';
 import type { CityReference } from '../data/cities.js';
 import type { Database } from '../db/client.js';
 import { cities, cityAliases } from '../db/schema.js';
 import { cleanText, toMatchKey } from '../import/normalizers/text.js';
+import type { ItmPoint } from '../services/geo/itm.js';
 import { excludedSet } from './upsertHelpers.js';
+
+export interface CityNeedingCoordinates {
+  id: number;
+  key: string;
+  cbsCode: number;
+}
 
 export class CityRepository {
   constructor(private readonly db: Database) {}
@@ -18,12 +25,13 @@ export class CityRepository {
             key: city.key,
             nameHe: city.nameHe,
             nameEn: city.nameEn,
+            cbsCode: city.cbsCode,
           };
         }),
       )
       .onConflictDoUpdate({
         target: cities.key,
-        set: { ...excludedSet(cities, ['nameHe', 'nameEn']), updatedAt: sql`now()` },
+        set: { ...excludedSet(cities, ['nameHe', 'nameEn', 'cbsCode']), updatedAt: sql`now()` },
       })
       .returning({ id: cities.id, key: cities.key });
 
@@ -61,5 +69,29 @@ export class CityRepository {
     }
 
     return idByKey;
+  }
+
+  /** Cities with an official CBS code whose coordinates have not been loaded yet. */
+  async findMissingCoordinates(): Promise<CityNeedingCoordinates[]> {
+    const rows = await this.db
+      .select({ id: cities.id, key: cities.key, cbsCode: cities.cbsCode })
+      .from(cities)
+      .where(and(isNotNull(cities.cbsCode), isNull(cities.itmX)));
+    return rows.flatMap((row) => {
+      return row.cbsCode === null ? [] : [{ id: row.id, key: row.key, cbsCode: row.cbsCode }];
+    });
+  }
+
+  async setCoordinates(cityId: number, point: ItmPoint, source: string): Promise<void> {
+    await this.db
+      .update(cities)
+      .set({
+        itmX: point.x,
+        itmY: point.y,
+        coordinatesSource: source,
+        coordinatesUpdatedAt: sql`now()`,
+        updatedAt: sql`now()`,
+      })
+      .where(eq(cities.id, cityId));
   }
 }

@@ -37,6 +37,13 @@ export const cities = pgTable('cities', {
   key: text('key').notNull().unique(),
   nameHe: text('name_he').notNull(),
   nameEn: text('name_en').notNull(),
+  /** Official CBS locality code (סמל יישוב). */
+  cbsCode: integer('cbs_code').unique(),
+  /** ITM coordinates in meters, only from an official source (see coordinatesSource). */
+  itmX: integer('itm_x'),
+  itmY: integer('itm_y'),
+  coordinatesSource: text('coordinates_source'),
+  coordinatesUpdatedAt: timestamp('coordinates_updated_at', { withTimezone: true }),
   ...timestamps,
 });
 

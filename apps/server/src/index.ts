@@ -1,12 +1,16 @@
 import { createApp } from './app.js';
 import { CbsClient } from './clients/cbs/cbsClient.js';
+import { LocalitiesClient } from './clients/dataGov/localitiesClient.js';
 import { HttpClient } from './clients/httpClient.js';
 import { env } from './config/env.js';
+import { CITY_REFERENCES } from './data/cities.js';
 import { createDatabase } from './db/client.js';
 import { ensureSeeded } from './import/seedService.js';
 import { logger } from './lib/logger.js';
+import { CityRepository } from './repositories/city.repository.js';
 import { DealRepository } from './repositories/deal.repository.js';
 import { PriceIndexRepository } from './repositories/priceIndex.repository.js';
+import { LocalityService } from './services/locality.service.js';
 import { PriceIndexService } from './services/priceIndex.service.js';
 
 const database = createDatabase({
@@ -20,10 +24,22 @@ async function start(): Promise<void> {
   await database.migrate();
   await ensureSeeded({ db: database.db, filePath: env.SEED_FILE_PATH, logger });
 
+  // Reference data changes with the code (e.g. new aliases or CBS codes), not only with a seed,
+  // so it is refreshed on every start. Idempotent upsert of a few rows.
+  const cityRepository = new CityRepository(database.db);
+  await cityRepository.upsertReferenceCities(CITY_REFERENCES);
+
+  const httpClient = new HttpClient(logger);
+  await new LocalityService(
+    cityRepository,
+    new LocalitiesClient(httpClient),
+    logger,
+  ).ensureCityCoordinates();
+
   const earliestDeal = await new DealRepository(database.db).earliestDealDate();
   const priceIndexService = new PriceIndexService(
     new PriceIndexRepository(database.db),
-    new CbsClient(new HttpClient(logger)),
+    new CbsClient(httpClient),
     logger,
   );
   await priceIndexService.ensure(

@@ -6,6 +6,8 @@
  */
 export interface CityReference {
   key: string;
+  /** Official CBS locality code (סמל יישוב), verified against the CBS localities file. */
+  cbsCode: number;
   nameHe: string;
   nameEn: string;
   aliases: string[];
@@ -14,108 +16,126 @@ export interface CityReference {
 export const CITY_REFERENCES: readonly CityReference[] = [
   {
     key: 'tel-aviv-yafo',
+    cbsCode: 5000,
     nameHe: 'תל אביב-יפו',
     nameEn: 'Tel Aviv-Yafo',
     aliases: ['תל אביב', 'ת"א', 'תא', 'תל-אביב', 'Tel Aviv', 'Tel-Aviv', 'TLV', 'Jaffa', 'יפו'],
   },
   {
     key: 'jerusalem',
+    cbsCode: 3000,
     nameHe: 'ירושלים',
     nameEn: 'Jerusalem',
     aliases: ['י-ם', 'Yerushalayim'],
   },
   {
     key: 'haifa',
+    cbsCode: 4000,
     nameHe: 'חיפה',
     nameEn: 'Haifa',
     aliases: [],
   },
   {
     key: 'rishon-lezion',
+    cbsCode: 8300,
     nameHe: 'ראשון לציון',
     nameEn: 'Rishon LeZion',
     aliases: ['ראשל"צ', 'Rishon Lezion', 'Rishon Le Zion'],
   },
   {
     key: 'petah-tikva',
+    cbsCode: 7900,
     nameHe: 'פתח תקווה',
     nameEn: 'Petah Tikva',
     aliases: ['פתח תקוה', 'פ"ת', 'Petach Tikva', 'Petah Tiqva', 'Petah Tikvah'],
   },
   {
     key: 'ashdod',
+    cbsCode: 70,
     nameHe: 'אשדוד',
     nameEn: 'Ashdod',
     aliases: [],
   },
   {
     key: 'netanya',
+    cbsCode: 7400,
     nameHe: 'נתניה',
     nameEn: 'Netanya',
     aliases: ['Natanya'],
   },
   {
     key: 'beer-sheva',
+    cbsCode: 9000,
     nameHe: 'באר שבע',
     nameEn: "Be'er Sheva",
     aliases: ['ב"ש', 'Beer Sheva', 'Beersheba', 'Beer-Sheva'],
   },
   {
     key: 'holon',
+    cbsCode: 6600,
     nameHe: 'חולון',
     nameEn: 'Holon',
     aliases: [],
   },
   {
     key: 'ramat-gan',
+    cbsCode: 8600,
     nameHe: 'רמת גן',
     nameEn: 'Ramat Gan',
     aliases: ['ר"ג'],
   },
   {
     key: 'rehovot',
+    cbsCode: 8400,
     nameHe: 'רחובות',
     nameEn: 'Rehovot',
     aliases: ['Rechovot'],
   },
   {
     key: 'bat-yam',
+    cbsCode: 6200,
     nameHe: 'בת ים',
     nameEn: 'Bat Yam',
     aliases: [],
   },
   {
     key: 'beit-shemesh',
+    cbsCode: 2610,
     nameHe: 'בית שמש',
     nameEn: 'Beit Shemesh',
     aliases: ['Bet Shemesh'],
   },
   {
     key: 'kfar-saba',
+    cbsCode: 6900,
     nameHe: 'כפר סבא',
     nameEn: 'Kfar Saba',
     aliases: ['כ"ס', 'Kfar Sava'],
   },
   {
     key: 'herzliya',
+    cbsCode: 6400,
     nameHe: 'הרצליה',
     nameEn: 'Herzliya',
-    aliases: ['Herzlia'],
+    aliases: ['הרצלייה', 'Herzliyya', 'Herzlia'],
   },
   {
     key: 'modiin',
+    cbsCode: 1200,
     nameHe: 'מודיעין-מכבים-רעות',
     nameEn: "Modi'in-Maccabim-Re'ut",
     aliases: ['מודיעין', 'מודיעין מכבים רעות', "Modi'in", 'Modiin'],
   },
   {
     key: 'raanana',
+    cbsCode: 8700,
     nameHe: 'רעננה',
     nameEn: "Ra'anana",
     aliases: ['Raanana'],
   },
   {
     key: 'givatayim',
+    cbsCode: 6300,
     nameHe: 'גבעתיים',
     nameEn: "Giv'atayim",
     aliases: ['גבעתים', 'Givatayim'],
