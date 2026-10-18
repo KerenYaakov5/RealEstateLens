@@ -14,8 +14,10 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
 
-function enumValues<T extends Record<string, string>>(record: T): [string, ...string[]] {
-  return Object.keys(record) as [string, ...string[]];
+function enumValues<T extends Record<string, string>>(
+  record: T,
+): [keyof T & string, ...(keyof T & string)[]] {
+  return Object.keys(record) as [keyof T & string, ...(keyof T & string)[]];
 }
 
 export const propertyTypeEnum = pgEnum('property_type', enumValues(PROPERTY_TYPES));

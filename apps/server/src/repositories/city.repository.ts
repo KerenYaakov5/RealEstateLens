@@ -71,6 +71,12 @@ export class CityRepository {
     return idByKey;
   }
 
+  async findAll() {
+    return this.db
+      .select({ key: cities.key, nameHe: cities.nameHe, itmX: cities.itmX, itmY: cities.itmY })
+      .from(cities);
+  }
+
   /** Cities with an official CBS code whose coordinates have not been loaded yet. */
   async findMissingCoordinates(): Promise<CityNeedingCoordinates[]> {
     const rows = await this.db
