@@ -7,6 +7,7 @@ import {
   integer,
   pgEnum,
   pgTable,
+  primaryKey,
   serial,
   text,
   timestamp,
@@ -109,6 +110,22 @@ export const importRuns = pgTable('import_runs', {
   duplicatesRemoved: integer('duplicates_removed').notNull().default(0),
   warnings: integer('warnings').notNull().default(0),
 });
+
+/** Monthly values of CBS price index series (e.g. 40010 – Prices of Dwellings). */
+export const priceIndex = pgTable(
+  'price_index',
+  {
+    seriesCode: integer('series_code').notNull(),
+    /** First day of the month, YYYY-MM-01. */
+    period: date('period', { mode: 'string' }).notNull(),
+    value: doublePrecision('value').notNull(),
+    baseDesc: text('base_desc').notNull(),
+    /** CBS revises the latest published months; those are refreshed periodically. */
+    isProvisional: boolean('is_provisional').notNull().default(false),
+    fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.seriesCode, table.period] })],
+);
 
 /** Rejected rows, warnings and removed duplicates of each import run. */
 export const importIssues = pgTable(

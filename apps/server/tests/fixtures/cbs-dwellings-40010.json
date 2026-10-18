@@ -1,0 +1,124 @@
+{
+  "month": [
+    {
+      "code": 40010,
+      "name": "Prices of Dwellings",
+      "date": [
+        {
+          "year": 2026,
+          "percent": -0.6,
+          "percentYear": -1.8,
+          "currBase": {
+            "baseDesc": "Average 1993",
+            "value": 590
+          },
+          "prevBase": null,
+          "month": 7,
+          "monthDesc": "July"
+        },
+        {
+          "year": 2026,
+          "percent": 0.1,
+          "percentYear": -1.4,
+          "currBase": {
+            "baseDesc": "Average 1993",
+            "value": 593.6
+          },
+          "prevBase": null,
+          "month": 6,
+          "monthDesc": "June"
+        },
+        {
+          "year": 2026,
+          "percent": 0.1,
+          "percentYear": -1.6,
+          "currBase": {
+            "baseDesc": "Average 1993",
+            "value": 593
+          },
+          "prevBase": null,
+          "month": 5,
+          "monthDesc": "May"
+        },
+        {
+          "year": 2026,
+          "percent": -1.2,
+          "percentYear": -2.1,
+          "currBase": {
+            "baseDesc": "Average 1993",
+            "value": 592.4
+          },
+          "prevBase": null,
+          "month": 4,
+          "monthDesc": "April"
+        },
+        {
+          "year": 2026,
+          "percent": -0.4,
+          "percentYear": -1.3,
+          "currBase": {
+            "baseDesc": "Average 1993",
+            "value": 599.6
+          },
+          "prevBase": null,
+          "month": 3,
+          "monthDesc": "March"
+        },
+        {
+          "year": 2026,
+          "percent": 0.4,
+          "percentYear": -1.1,
+          "currBase": {
+            "baseDesc": "Average 1993",
+            "value": 602
+          },
+          "prevBase": null,
+          "month": 2,
+          "monthDesc": "February"
+        },
+        {
+          "year": 2026,
+          "percent": -0.1,
+          "percentYear": -1.7,
+          "currBase": {
+            "baseDesc": "Average 1993",
+            "value": 599.6
+          },
+          "prevBase": null,
+          "month": 1,
+          "monthDesc": "January"
+        },
+        {
+          "year": 2025,
+          "percent": -0.1,
+          "percentYear": -1,
+          "currBase": {
+            "baseDesc": "Average 1993",
+            "value": 600.2
+          },
+          "prevBase": null,
+          "month": 12,
+          "monthDesc": "December"
+        },
+        {
+          "year": 2025,
+          "percent": 0.8,
+          "percentYear": 0.3,
+          "currBase": {
+            "baseDesc": "Average 1993",
+            "value": 600.8
+          },
+          "prevBase": null,
+          "month": 11,
+          "monthDesc": "November"
+        }
+      ]
+    }
+  ],
+  "paging": {
+    "total_items": 9,
+    "page_size": 100,
+    "current_page": 1,
+    "last_page": 1
+  }
+}

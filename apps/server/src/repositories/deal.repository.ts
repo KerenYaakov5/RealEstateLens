@@ -1,4 +1,4 @@
-import { count, sql } from 'drizzle-orm';
+import { count, min, sql } from 'drizzle-orm';
 import type { Database } from '../db/client.js';
 import { deals } from '../db/schema.js';
 import { chunk, excludedSet } from './upsertHelpers.js';
@@ -36,6 +36,12 @@ export class DealRepository {
   async count(): Promise<number> {
     const [row] = await this.db.select({ value: count() }).from(deals);
     return row?.value ?? 0;
+  }
+
+  /** Earliest deal date (YYYY-MM-DD), or null when no deal has a date. */
+  async earliestDealDate(): Promise<string | null> {
+    const [row] = await this.db.select({ value: min(deals.dealDate) }).from(deals);
+    return row?.value ?? null;
   }
 
   /** Inserts new deals and overwrites existing ones (matched by deal_id). */
