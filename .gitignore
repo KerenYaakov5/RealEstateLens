@@ -11,6 +11,9 @@ build/
 .env.*
 !.env.example
 
+# Local embedded database (PGlite)
+.pglite/
+
 # Logs
 logs/
 *.log
