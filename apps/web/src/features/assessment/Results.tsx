@@ -1,5 +1,6 @@
 import type { CompromiseDto, MarketAssessmentDto } from '@rel/shared';
 import type { Place } from '../criteria/criteria';
+import { HouseCard } from '../house/HouseCard';
 import { CompromiseCards } from './CompromiseCards';
 import { FeasibilityCard } from './FeasibilityCard';
 import { ReferenceDeals } from './ReferenceDeals';
@@ -139,6 +140,11 @@ export function Results({ state, onApplyCompromise, onChooseCity }: ResultsProps
       {data.nearbyCitiesWithData.length === 0 && (
         <>
           <FeasibilityCard assessment={data} />
+          <HouseCard
+            parts={data.houseParts}
+            compromises={data.compromises}
+            onApplyCompromise={onApplyCompromise}
+          />
           <CompromiseCards compromises={data.compromises} onApply={onApplyCompromise} />
           <TypicalForBudget assessment={data} />
           <ReferenceDeals deals={data.referenceDeals} />
