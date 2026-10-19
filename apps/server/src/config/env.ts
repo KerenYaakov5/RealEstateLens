@@ -34,6 +34,9 @@ const envSchema = z
     RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(120),
     LOGIN_MAX_ATTEMPTS: z.coerce.number().int().positive().default(5),
     LOGIN_WINDOW_MINUTES: z.coerce.number().int().positive().default(15),
+
+    // Static reference data: minimum months between checks for a newer published file
+    LOCALITIES_CHECK_MONTHS: z.coerce.number().int().positive().default(6),
   })
   .superRefine((value, ctx) => {
     if (value.NODE_ENV === 'production' && value.JWT_SECRET === undefined) {

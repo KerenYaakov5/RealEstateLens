@@ -1,31 +1,26 @@
 import { writeFile } from 'node:fs/promises';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import {
-  CBS_LOCALITIES_RESOURCE_ID,
-  CBS_LOCALITIES_SOURCE,
-  LocalitiesClient,
-} from '../clients/dataGov/localitiesClient.js';
+import { LocalitiesClient, localitiesSourceLabel } from '../clients/dataGov/localitiesClient.js';
 import { HttpClient } from '../clients/httpClient.js';
 import { logger } from '../lib/logger.js';
+import { DEFAULT_SNAPSHOT_PATH } from '../services/locality.service.js';
 
-// `npm run localities:snapshot` – refreshes the committed fallback copy of the CBS localities
-// file. The server reads the DB first, then the live API, and uses this file only if both fail.
-const target = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  '../../data/reference/cbs-localities-2023.json',
-);
-
-const localities = await new LocalitiesClient(new HttpClient(logger)).fetchAll();
+// `npm run localities:snapshot` – refreshes the committed fallback copy of the newest CBS
+// localities file. The server reads the DB first, then the live API, and uses this copy only if
+// both fail.
+const client = new LocalitiesClient(new HttpClient(logger));
+const file = await client.findLatestFile();
+const localities = await client.fetchAll(file.resourceId);
 localities.sort((a, b) => {
   return a.code - b.code;
 });
 
 const snapshot = {
-  source: CBS_LOCALITIES_SOURCE,
-  resourceId: CBS_LOCALITIES_RESOURCE_ID,
+  source: localitiesSourceLabel(file.year),
+  resourceId: file.resourceId,
+  year: file.year,
+  sourceModifiedAt: file.lastModified,
   retrievedAt: new Date().toISOString().slice(0, 10),
   localities,
 };
-await writeFile(target, `${JSON.stringify(snapshot, null, 2)}\n`, 'utf8');
-logger.info({ count: localities.length, target }, 'Localities snapshot written');
+await writeFile(DEFAULT_SNAPSHOT_PATH, `${JSON.stringify(snapshot, null, 2)}\n`, 'utf8');
+logger.info({ count: localities.length, year: file.year }, 'Localities snapshot written');

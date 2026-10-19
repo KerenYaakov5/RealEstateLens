@@ -11,6 +11,7 @@ import { CityRepository } from './repositories/city.repository.js';
 import { DealRepository } from './repositories/deal.repository.js';
 import { NeighborhoodRepository } from './repositories/neighborhood.repository.js';
 import { PriceIndexRepository } from './repositories/priceIndex.repository.js';
+import { ReferenceSourceRepository } from './repositories/referenceSource.repository.js';
 import { UserRepository } from './repositories/user.repository.js';
 import { AuthService } from './services/auth.service.js';
 import { LocalityService } from './services/locality.service.js';
@@ -36,8 +37,10 @@ async function start(): Promise<void> {
   const httpClient = new HttpClient(logger);
   await new LocalityService(
     cityRepository,
+    new ReferenceSourceRepository(database.db),
     new LocalitiesClient(httpClient),
     logger,
+    { checkIntervalMonths: env.LOCALITIES_CHECK_MONTHS },
   ).ensureLocalities();
 
   const earliestDeal = await new DealRepository(database.db).earliestDealDate();

@@ -6,9 +6,8 @@ import { normalizeEmail } from '../repositories/user.repository.js';
 // Limits are kept in memory. With more than one server instance they would need a shared
 // store (Postgres or Redis) – see the plan.
 
-function clientIp(ip: string | undefined): string {
-  return ipKeyGenerator(ip ?? 'unknown');
-}
+// Keys call ipKeyGenerator directly (not through a wrapper): the library inspects keyGenerator
+// source to verify IPv6 addresses are grouped, and warns at startup otherwise.
 
 /** Failed-login guard: counts attempts per IP + email; successful logins are not counted. */
 export function loginRateLimit(maxAttempts: number, windowMinutes: number): RequestHandler {
@@ -27,7 +26,7 @@ export function loginRateLimit(maxAttempts: number, windowMinutes: number): Requ
         typeof body.email === 'string'
           ? normalizeEmail(body.email)
           : '';
-      return `${clientIp(req.ip)}|${email}`;
+      return `${ipKeyGenerator(req.ip ?? 'unknown')}|${email}`;
     },
     handler: (_req, _res, next) => {
       next(AppError.tooManyRequests('יותר מדי ניסיונות התחברות, נסו שוב בעוד כמה דקות'));
@@ -43,7 +42,7 @@ export function apiRateLimit(perMinute: number): RequestHandler {
     standardHeaders: 'draft-8',
     legacyHeaders: false,
     keyGenerator: (req) => {
-      return req.user === undefined ? clientIp(req.ip) : `user:${req.user.id}`;
+      return req.user === undefined ? ipKeyGenerator(req.ip ?? 'unknown') : `user:${req.user.id}`;
     },
     handler: (_req, _res, next) => {
       next(AppError.tooManyRequests());

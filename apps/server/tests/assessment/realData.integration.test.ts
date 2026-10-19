@@ -10,6 +10,7 @@ import { CityRepository } from '../../src/repositories/city.repository.js';
 import { DealRepository } from '../../src/repositories/deal.repository.js';
 import { NeighborhoodRepository } from '../../src/repositories/neighborhood.repository.js';
 import { PriceIndexRepository } from '../../src/repositories/priceIndex.repository.js';
+import { ReferenceSourceRepository } from '../../src/repositories/referenceSource.repository.js';
 import { assess } from '../../src/services/assessment/assess.js';
 import type { PricedMarket } from '../../src/services/assessment/market.js';
 import { ASSESSMENT_CONFIG } from '../../src/services/assessment/config.js';
@@ -22,8 +23,10 @@ const seedFile = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   '../../data/madlan-sample.xlsx',
 );
+const offline = () => Promise.reject(new Error('offline in tests'));
 const offlineClient = {
-  fetchAll: () => Promise.reject(new Error('offline in tests')),
+  fetchAll: offline,
+  findLatestFile: offline,
 } as unknown as LocalitiesClient;
 
 let handle: DatabaseHandle;
@@ -36,7 +39,12 @@ beforeAll(async () => {
   await handle.migrate();
   await seedDeals({ db: handle.db, filePath: seedFile, logger, today: new Date('2026-10-18') });
   const cityRepository = new CityRepository(handle.db);
-  await new LocalityService(cityRepository, offlineClient, logger).ensureLocalities();
+  await new LocalityService(
+    cityRepository,
+    new ReferenceSourceRepository(handle.db),
+    offlineClient,
+    logger,
+  ).ensureLocalities();
   const priceIndex = new PriceIndexRepository(handle.db);
   await priceIndex.upsertSeries(
     40010,

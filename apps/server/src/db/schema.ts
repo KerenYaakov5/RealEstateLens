@@ -59,11 +59,15 @@ export const cities = pgTable('cities', {
   cbsCode: integer('cbs_code').unique(),
   /** CBS municipal status code: 0 = city, 99 = local council, others = regional council / none. */
   municipalStatus: integer('municipal_status'),
-  /** CBS 2023 population estimate; used only to rank search suggestions. */
+  /** CBS population estimate (latest file); used only to rank search suggestions. */
   population: integer('population'),
   /** ITM coordinates in meters, only from an official source (see coordinatesSource). */
   itmX: integer('itm_x'),
   itmY: integer('itm_y'),
+  /**
+   * The official file this locality was last loaded from – set even when that file has no
+   * coordinates for it, so "never loaded" (null) is distinguishable from "officially unknown".
+   */
   coordinatesSource: text('coordinates_source'),
   coordinatesUpdatedAt: timestamp('coordinates_updated_at', { withTimezone: true }),
   ...timestamps,
@@ -153,6 +157,19 @@ export const priceIndex = pgTable(
   },
   (table) => [primaryKey({ columns: [table.seriesCode, table.period] })],
 );
+
+/**
+ * State of each static reference source (e.g. the CBS localities file): which published file
+ * was loaded, its modification date, and when we last checked for a newer one.
+ */
+export const referenceSources = pgTable('reference_sources', {
+  key: text('key').primaryKey(),
+  resourceId: text('resource_id').notNull(),
+  /** Modification date as published by the source (kept verbatim for comparison). */
+  sourceModifiedAt: text('source_modified_at'),
+  checkedAt: timestamp('checked_at', { withTimezone: true }).notNull(),
+  loadedAt: timestamp('loaded_at', { withTimezone: true }).notNull(),
+});
 
 /** Rejected rows, warnings and removed duplicates of each import run. */
 export const importIssues = pgTable(

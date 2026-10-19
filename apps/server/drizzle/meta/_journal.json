@@ -50,6 +50,13 @@
       "when": 1792403696047,
       "tag": "0006_all_localities",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792412029972,
+      "tag": "0007_reference_sources",
+      "breakpoints": true
     }
   ]
 }

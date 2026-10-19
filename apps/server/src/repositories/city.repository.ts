@@ -105,12 +105,16 @@ export class CityRepository {
     return row?.value ?? 0;
   }
 
-  /** Cities with an official CBS code whose coordinates have not been loaded yet. */
-  async findMissingCoordinates(): Promise<CityNeedingCoordinates[]> {
+  /**
+   * Localities with an official CBS code that were never loaded from the official file (e.g. a
+   * reference city added before the first load). A locality the file has no coordinates for does
+   * not count – it was loaded, its coordinates are officially unknown.
+   */
+  async findNotYetLoaded(): Promise<CityNeedingCoordinates[]> {
     const rows = await this.db
       .select({ id: cities.id, key: cities.key, cbsCode: cities.cbsCode })
       .from(cities)
-      .where(and(isNotNull(cities.cbsCode), isNull(cities.itmX)));
+      .where(and(isNotNull(cities.cbsCode), isNull(cities.coordinatesSource)));
     return rows.flatMap((row) => {
       return row.cbsCode === null ? [] : [{ id: row.id, key: row.key, cbsCode: row.cbsCode }];
     });
@@ -136,8 +140,8 @@ export class CityRepository {
               population: locality.population,
               itmX: locality.location?.x ?? null,
               itmY: locality.location?.y ?? null,
-              coordinatesSource: locality.location === null ? null : source,
-              coordinatesUpdatedAt: locality.location === null ? null : sql`now()`,
+              coordinatesSource: source,
+              coordinatesUpdatedAt: sql`now()`,
             };
           }),
         )
@@ -152,6 +156,9 @@ export class CityRepository {
               'coordinatesSource',
               'coordinatesUpdatedAt',
             ]),
+            // Official names follow the newest file, except for the hand-checked reference cities.
+            nameHe: sql`CASE WHEN ${cities.key} LIKE 'cbs-%' THEN excluded.name_he ELSE ${cities.nameHe} END`,
+            nameEn: sql`CASE WHEN ${cities.key} LIKE 'cbs-%' THEN excluded.name_en ELSE ${cities.nameEn} END`,
             updatedAt: sql`now()`,
           },
         });

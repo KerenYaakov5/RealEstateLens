@@ -11,6 +11,7 @@ import { CityRepository } from '../../src/repositories/city.repository.js';
 import { DealRepository } from '../../src/repositories/deal.repository.js';
 import { NeighborhoodRepository } from '../../src/repositories/neighborhood.repository.js';
 import { PriceIndexRepository } from '../../src/repositories/priceIndex.repository.js';
+import { ReferenceSourceRepository } from '../../src/repositories/referenceSource.repository.js';
 import { UserRepository } from '../../src/repositories/user.repository.js';
 import { AuthService, hashPassword } from '../../src/services/auth.service.js';
 import { LocalityService } from '../../src/services/locality.service.js';
@@ -22,8 +23,10 @@ const SEED_FILE = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   '../../data/madlan-sample.xlsx',
 );
+const offline = () => Promise.reject(new Error('offline in tests'));
 const offlineLocalities = {
-  fetchAll: () => Promise.reject(new Error('offline in tests')),
+  fetchAll: offline,
+  findLatestFile: offline,
 } as unknown as LocalitiesClient;
 
 export interface TestApp {
@@ -49,7 +52,12 @@ export async function createTestApp(setup: TestAppSetup = {}): Promise<TestApp> 
   const cities = new CityRepository(handle.db);
   if (setup.withSeedData === true) {
     await seedDeals({ db: handle.db, filePath: SEED_FILE, logger, today: new Date('2026-10-18') });
-    await new LocalityService(cities, offlineLocalities, logger).ensureLocalities();
+    await new LocalityService(
+      cities,
+      new ReferenceSourceRepository(handle.db),
+      offlineLocalities,
+      logger,
+    ).ensureLocalities();
   }
   const marketData = new MarketDataService(
     {
