@@ -1,11 +1,20 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
 import { ApiError } from './api/client';
+import { SESSION_KEY } from './auth/session';
 import './index.css';
 
-const queryClient = new QueryClient({
+const queryClient: QueryClient = new QueryClient({
+  // A 401 from any request means the session expired: go back to the login screen.
+  queryCache: new QueryCache({
+    onError: (error) => {
+      if (error instanceof ApiError && error.status === 401) {
+        queryClient.setQueryData(SESSION_KEY, null);
+      }
+    },
+  }),
   defaultOptions: {
     queries: {
       // Market data changes only when the server re-seeds; no need to refetch on every focus.
