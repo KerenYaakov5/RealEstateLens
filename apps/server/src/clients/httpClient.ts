@@ -7,6 +7,8 @@ export class HttpError extends Error {
     readonly url: string,
     readonly status: number | null,
     readonly retryable: boolean,
+    /** Wait requested by the server (Retry-After), in milliseconds. */
+    readonly retryAfterMs: number | null = null,
   ) {
     super(message);
     this.name = 'HttpError';
@@ -26,10 +28,32 @@ export type FetchFn = typeof fetch;
 const DEFAULT_TIMEOUT_MS = 10_000;
 const DEFAULT_RETRIES = 2;
 const BASE_BACKOFF_MS = 300;
+/** Never wait longer than this for one retry, whatever the server asks (keeps startup bounded). */
+const MAX_RETRY_WAIT_MS = 30_000;
 
 /**
- * Generic client for third-party JSON APIs: per-request timeout, retries with
- * exponential backoff on network errors / 429 / 5xx, response validation, and logging.
+ * Reads a Retry-After header: either seconds ("120") or an HTTP date. Returns milliseconds,
+ * or null when the header is missing or unreadable.
+ */
+export function parseRetryAfter(header: string | null, now: number = Date.now()): number | null {
+  if (header === null || header.trim() === '') {
+    return null;
+  }
+  const value = header.trim();
+  if (/^\d+$/.test(value)) {
+    return Number(value) * 1000;
+  }
+  const date = Date.parse(value);
+  if (Number.isNaN(date)) {
+    return null;
+  }
+  return Math.max(0, date - now);
+}
+
+/**
+ * Generic client for third-party JSON APIs: per-request timeout, retries on network errors /
+ * 429 / 5xx, response validation, and logging. Between retries it waits as long as the server
+ * asks (Retry-After, capped) or, without such a header, an exponential default backoff.
  */
 export class HttpClient {
   constructor(
@@ -44,7 +68,7 @@ export class HttpClient {
 
     for (let attempt = 0; attempt <= retries; attempt++) {
       if (attempt > 0) {
-        await this.sleep(BASE_BACKOFF_MS * 2 ** (attempt - 1));
+        await this.sleep(retryWait(attempt, lastError));
       }
       const startedAt = Date.now();
       try {
@@ -63,6 +87,7 @@ export class HttpClient {
             attempt,
             ms: Date.now() - startedAt,
             status: lastError.status,
+            retryAfterMs: lastError.retryAfterMs,
             err: lastError.message,
           },
           'HTTP GET failed',
@@ -82,10 +107,25 @@ export class HttpClient {
     });
     if (!response.ok) {
       const retryable = response.status === 429 || response.status >= 500;
-      throw new HttpError(`HTTP ${response.status} from ${url}`, url, response.status, retryable);
+      throw new HttpError(
+        `HTTP ${response.status} from ${url}`,
+        url,
+        response.status,
+        retryable,
+        parseRetryAfter(response.headers.get('retry-after')),
+      );
     }
     return (await response.json()) as unknown;
   }
+}
+
+/** The server's requested wait when it gave one (capped), otherwise exponential backoff. */
+function retryWait(attempt: number, lastError: HttpError | undefined): number {
+  const requested = lastError?.retryAfterMs ?? null;
+  if (requested !== null) {
+    return Math.min(requested, MAX_RETRY_WAIT_MS);
+  }
+  return BASE_BACKOFF_MS * 2 ** (attempt - 1);
 }
 
 function toHttpError(err: unknown, url: string): HttpError {
