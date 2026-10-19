@@ -2,6 +2,7 @@ import { FEATURE_LABELS, FEATURES, PROPERTY_TYPES, type PropertyType } from '@re
 import { useRef, type Dispatch } from 'react';
 import { searchCities, searchNeighborhoods } from '../../api/places';
 import { Autocomplete } from '../../components/Autocomplete';
+import { MobileCollapsible } from '../../components/MobileCollapsible';
 import { formatPriceShort } from '../../lib/format';
 import { BUDGET, type CriteriaAction, type CriteriaState } from './criteria';
 import { FeatureToggle } from './FeatureToggle';
@@ -12,6 +13,21 @@ interface CriteriaPanelProps {
   state: CriteriaState;
   dispatch: Dispatch<CriteriaAction>;
   onReset: () => void;
+}
+
+/** "4 חדרים · ממ"ד – חובה · מעלית – רצוי", shown on a collapsed panel. */
+function choicesSummary(state: CriteriaState): string {
+  const parts: string[] = [];
+  if (state.rooms !== null) {
+    parts.push(`${state.rooms} חדרים`);
+  }
+  for (const feature of FEATURES) {
+    const preference = state.features[feature];
+    if (preference !== 'any') {
+      parts.push(`${FEATURE_LABELS[feature]} – ${preference === 'required' ? 'חובה' : 'רצוי'}`);
+    }
+  }
+  return parts.length === 0 ? 'לא נבחרו דרישות' : parts.join(' · ');
 }
 
 function neighborhoodText(state: CriteriaState): string {
@@ -72,9 +88,7 @@ export function CriteriaPanel({ state, dispatch, onReset }: CriteriaPanelProps) 
       <div>
         <label htmlFor="budget" className="mb-1 flex items-baseline justify-between">
           <span className="text-sm font-medium text-ink-soft">תקציב מקסימלי</span>
-          <span className="num text-lg font-bold text-brand">
-            {formatPriceShort(state.maxPrice)}
-          </span>
+          <span className="text-lg font-bold text-brand">{formatPriceShort(state.maxPrice)}</span>
         </label>
         <input
           id="budget"
@@ -91,43 +105,45 @@ export function CriteriaPanel({ state, dispatch, onReset }: CriteriaPanelProps) 
         />
       </div>
 
-      <fieldset>
-        <legend className="mb-1.5 text-sm font-medium text-ink-soft">מספר חדרים</legend>
-        <div className="flex flex-wrap gap-1.5">
-          {[null, ...ROOM_CHOICES].map((rooms) => {
-            const selected = state.rooms === rooms;
-            return (
-              <button
-                key={rooms ?? 'any'}
-                type="button"
-                aria-pressed={selected}
-                onClick={() => {
-                  dispatch({ type: 'setRooms', rooms });
-                }}
-                className={`rounded-xl px-3 py-1.5 text-sm font-medium transition ${
-                  selected ? 'bg-brand text-white' : 'bg-sand text-ink-soft hover:text-ink'
-                }`}
-              >
-                {rooms === null ? 'לא משנה' : rooms}
-              </button>
-            );
-          })}
-        </div>
-        <p className="mt-1 text-xs text-muted">כולל חצי חדר לכל כיוון (למשל 4 = 3.5 עד 4.5)</p>
-      </fieldset>
+      <MobileCollapsible title="חדרים ודרישות" summary={choicesSummary(state)}>
+        <fieldset>
+          <legend className="mb-1.5 text-sm font-medium text-ink-soft">מספר חדרים</legend>
+          <div className="flex flex-wrap gap-1.5">
+            {[null, ...ROOM_CHOICES].map((rooms) => {
+              const selected = state.rooms === rooms;
+              return (
+                <button
+                  key={rooms ?? 'any'}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() => {
+                    dispatch({ type: 'setRooms', rooms });
+                  }}
+                  className={`rounded-xl px-3 py-1.5 text-sm font-medium transition ${
+                    selected ? 'bg-brand text-white' : 'bg-sand text-ink-soft hover:text-ink'
+                  }`}
+                >
+                  {rooms === null ? 'לא משנה' : rooms}
+                </button>
+              );
+            })}
+          </div>
+          <p className="mt-1 text-xs text-muted">כולל חצי חדר לכל כיוון (למשל 4 = 3.5 עד 4.5)</p>
+        </fieldset>
 
-      <div className="space-y-2.5">
-        {FEATURES.map((feature) => (
-          <FeatureToggle
-            key={feature}
-            label={FEATURE_LABELS[feature]}
-            value={state.features[feature]}
-            onChange={(preference) => {
-              dispatch({ type: 'setFeature', feature, preference });
-            }}
-          />
-        ))}
-      </div>
+        <div className="space-y-2.5">
+          {FEATURES.map((feature) => (
+            <FeatureToggle
+              key={feature}
+              label={FEATURE_LABELS[feature]}
+              value={state.features[feature]}
+              onChange={(preference) => {
+                dispatch({ type: 'setFeature', feature, preference });
+              }}
+            />
+          ))}
+        </div>
+      </MobileCollapsible>
 
       <details className="group rounded-xl border border-line px-3 py-2">
         <summary className="cursor-pointer text-sm font-medium text-ink-soft">

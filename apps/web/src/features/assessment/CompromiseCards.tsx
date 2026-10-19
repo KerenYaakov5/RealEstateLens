@@ -41,7 +41,7 @@ export function CompromiseCards({ compromises, onApply }: CompromiseCardsProps) 
               <span className="mt-1 block text-xs text-muted">
                 על סמך <span className="num">{compromise.feasibility.poolSize}</span> עסקאות
               </span>
-              <span className="mt-3 block text-sm font-medium text-brand opacity-0 transition group-hover:opacity-100 group-focus-visible:opacity-100">
+              <span className="mt-3 block text-sm font-medium text-brand transition sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-visible:opacity-100">
                 להחיל את השינוי ←
               </span>
             </button>

@@ -40,7 +40,8 @@
     @apply bg-canvas font-sans text-ink antialiased;
   }
 
-  /* Numbers (prices, percentages) stay left-to-right inside Hebrew text. */
+  /* Plain numbers and percentages stay left-to-right inside Hebrew text. Not for prices or any
+     text with Hebrew words / the shekel sign – the bidi algorithm orders those correctly. */
   .num {
     direction: ltr;
     unicode-bidi: isolate;

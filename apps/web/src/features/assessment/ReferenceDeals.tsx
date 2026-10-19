@@ -53,9 +53,9 @@ export function ReferenceDeals({ deals }: { deals: ReferenceDeal[] }) {
                     {deal.dealDate === null ? '—' : formatDate(deal.dealDate)}
                   </td>
                   <td className="py-2">
-                    <span className="num block font-bold">{formatPrice(deal.priceNis)}</span>
+                    <span className="block font-bold">{formatPrice(deal.priceNis)}</span>
                     {deal.isAdjusted && deal.adjustedPriceNis !== deal.priceNis && (
-                      <span className="num block text-xs text-muted">
+                      <span className="block text-xs text-muted">
                         היום כ-{formatPrice(deal.adjustedPriceNis)}
                       </span>
                     )}
@@ -71,7 +71,7 @@ export function ReferenceDeals({ deals }: { deals: ReferenceDeal[] }) {
               <li key={deal.id} className="rounded-xl border border-line p-3">
                 <div className="flex items-baseline justify-between gap-2">
                   <span className="font-medium">{placeOf(deal)}</span>
-                  <span className="num font-bold">{formatPrice(deal.priceNis)}</span>
+                  <span className="font-bold">{formatPrice(deal.priceNis)}</span>
                 </div>
                 <p className="mt-1 text-sm text-ink-soft">
                   {propertyTypeLabel(deal.propertyType)} · <span className="num">{deal.rooms}</span>{' '}
