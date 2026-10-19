@@ -80,6 +80,21 @@ describe('findCompromises', () => {
     });
   });
 
+  it('does not offer a budget beyond 150% of the current one', () => {
+    const deals = [1_000_000, 4_600_000, 4_700_000, 4_800_000].map((price) => {
+      return makePriced({ priceNis: price });
+    });
+
+    const atLimit = compromisesFor(
+      [1_000_000, 4_500_000, 4_600_000, 4_700_000].map((price) => makePriced({ priceNis: price })),
+      criteria({ maxPrice: 3_000_000 }),
+    );
+    const beyond = compromisesFor(deals, criteria({ maxPrice: 3_000_000 }));
+
+    expect(atLimit.some((candidate) => candidate.type === 'raiseBudget')).toBe(true);
+    expect(beyond.some((candidate) => candidate.type === 'raiseBudget')).toBe(false);
+  });
+
   it('offers a nearby city only within the distance limit, with its official distance', () => {
     const deals = [
       ...times(3, () => makePriced({ priceNis: 3_000_000 })),

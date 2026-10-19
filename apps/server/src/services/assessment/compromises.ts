@@ -192,7 +192,10 @@ function nearbyCityCandidates(context: Context): CompromiseCandidate[] {
   });
 }
 
-/** The budget at which half of the pool becomes affordable – a price that was actually paid. */
+/**
+ * The budget at which half of the pool becomes affordable – a price that was actually paid.
+ * Not offered when that budget is beyond a realistic stretch (maxBudgetRatio × budget).
+ */
 function raiseBudgetCandidate(context: Context): CompromiseCandidate[] {
   const criteria = withoutBudget(context.criteria);
   const pool = buildPool(context.deals, criteria);
@@ -205,6 +208,9 @@ function raiseBudgetCandidate(context: Context): CompromiseCandidate[] {
     ASSESSMENT_CONFIG.budgetTargetShare,
   );
   if (target === undefined || target <= context.criteria.maxPrice) {
+    return [];
+  }
+  if (target > context.criteria.maxPrice * ASSESSMENT_CONFIG.maxBudgetRatio) {
     return [];
   }
   const candidate = makeCandidate(

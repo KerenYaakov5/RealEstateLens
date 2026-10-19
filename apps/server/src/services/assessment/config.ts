@@ -19,6 +19,8 @@ export const ASSESSMENT_CONFIG = {
   nearbyCityMaxKm: 25,
   /** "Raise the budget" targets the price at which this share of the pool becomes affordable. */
   budgetTargetShare: 0.5,
+  /** "Raise the budget" is offered only if the target is at most this multiple of the budget. */
+  maxBudgetRatio: 1.5,
   /** House visual: share of affordable deals that have a part → full / partial / missing. */
   houseParts: { fullFrom: 0.5, partialFrom: 0.2, minKnown: 3 },
   /** "What you can get": the spread shown as "most deals" (percentiles). */
