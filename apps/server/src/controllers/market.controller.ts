@@ -79,9 +79,7 @@ export class MarketController {
       res.json({ data: all });
       return;
     }
-    const city = [...market.cities.values()].find((item) => {
-      return item.id === params.data.cityId;
-    });
+    const city = market.indexes.citiesById.get(params.data.cityId);
     const hits = city === undefined ? [] : searchNeighborhoods(market, city.key, search);
     if (hits.length === 0) {
       res.status(204).end();

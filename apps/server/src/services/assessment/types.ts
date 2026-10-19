@@ -43,6 +43,11 @@ export interface SnapshotNeighborhood {
   name: string;
 }
 
+/** The one way to key a neighborhood by city and name in memory. */
+export function neighborhoodKey(cityKey: string, name: string): string {
+  return `${cityKey}|${name}`;
+}
+
 export interface IndexPointInput {
   /** YYYY-MM-01 */
   period: string;

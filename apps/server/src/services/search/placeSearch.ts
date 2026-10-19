@@ -1,6 +1,10 @@
 import { normalizeNeighborhood } from '../../import/normalizers/location.js';
-import type { PricedMarket } from '../assessment/assess.js';
-import type { SnapshotCity, SnapshotNeighborhood } from '../assessment/types.js';
+import type { PricedMarket } from '../assessment/market.js';
+import {
+  neighborhoodKey,
+  type SnapshotCity,
+  type SnapshotNeighborhood,
+} from '../assessment/types.js';
 import { bestMatch, searchKey, type TextMatch } from './textMatch.js';
 
 export const DEFAULT_SEARCH_LIMIT = 10;
@@ -15,37 +19,6 @@ export interface NeighborhoodSearchHit {
   neighborhood: SnapshotNeighborhood;
   dealCount: number;
   match: TextMatch;
-}
-
-// Deal counts are derived once per market snapshot (a new snapshot gets new counts).
-const cityCounts = new WeakMap<PricedMarket, Map<string, number>>();
-const neighborhoodCounts = new WeakMap<PricedMarket, Map<string, number>>();
-
-function dealCountsByCity(market: PricedMarket): Map<string, number> {
-  let counts = cityCounts.get(market);
-  if (counts === undefined) {
-    counts = new Map();
-    for (const deal of market.deals) {
-      counts.set(deal.cityKey, (counts.get(deal.cityKey) ?? 0) + 1);
-    }
-    cityCounts.set(market, counts);
-  }
-  return counts;
-}
-
-function dealCountsByNeighborhood(market: PricedMarket): Map<string, number> {
-  let counts = neighborhoodCounts.get(market);
-  if (counts === undefined) {
-    counts = new Map();
-    for (const deal of market.deals) {
-      if (deal.neighborhood !== null) {
-        const key = `${deal.cityKey}|${deal.neighborhood}`;
-        counts.set(key, (counts.get(key) ?? 0) + 1);
-      }
-    }
-    neighborhoodCounts.set(market, counts);
-  }
-  return counts;
 }
 
 /** Cities (status 0) before local councils (99) before other localities. */
@@ -70,7 +43,7 @@ export function searchCities(
   limit = DEFAULT_SEARCH_LIMIT,
 ): CitySearchHit[] {
   const key = searchKey(query);
-  const counts = dealCountsByCity(market);
+  const counts = market.indexes.dealCountByCity;
   const hits: CitySearchHit[] = [];
   for (const city of market.cities.values()) {
     const match = bestMatch(key, market.searchNames.get(city.key) ?? []);
@@ -101,7 +74,7 @@ export function searchNeighborhoods(
   // Canonicalize known variants first ("Florentin" → "פלורנטין", "רמב"ש ג'" → full name).
   const canonical = normalizeNeighborhood(query);
   const key = searchKey(canonical.ok && canonical.value !== null ? canonical.value : query);
-  const counts = dealCountsByNeighborhood(market);
+  const counts = market.indexes.dealCountByNeighborhood;
   const hits: NeighborhoodSearchHit[] = [];
   for (const neighborhood of market.neighborhoods) {
     if (neighborhood.cityKey !== cityKey) {
@@ -111,7 +84,7 @@ export function searchNeighborhoods(
     if (match !== null) {
       hits.push({
         neighborhood,
-        dealCount: counts.get(`${cityKey}|${neighborhood.name}`) ?? 0,
+        dealCount: counts.get(neighborhoodKey(cityKey, neighborhood.name)) ?? 0,
         match,
       });
     }

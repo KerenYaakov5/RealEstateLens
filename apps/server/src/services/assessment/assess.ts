@@ -11,19 +11,7 @@ import {
   type TypicalForBudget,
 } from './insights.js';
 import { buildPool, type PoolCriteria } from './pool.js';
-import type { PricedDeal, SnapshotCity, SnapshotNeighborhood } from './types.js';
-
-/** Deals already priced in today's terms, plus the cities – what `assess` works on. */
-export interface PricedMarket {
-  deals: readonly PricedDeal[];
-  /** Keyed by city key (the engine's identifier). */
-  cities: ReadonlyMap<string, SnapshotCity>;
-  neighborhoods: readonly SnapshotNeighborhood[];
-  /** Search keys (normalized names and aliases) per city key – precomputed for fast search. */
-  searchNames: ReadonlyMap<string, readonly string[]>;
-  /** The CBS index month prices are expressed in (YYYY-MM-01), or null. */
-  referencePeriod: string | null;
-}
+import type { PricedMarket } from './market.js';
 
 export interface MarketAssessment {
   city: { key: string; nameHe: string };
@@ -69,7 +57,7 @@ export function assess(market: PricedMarket, criteria: MarketCriteria): MarketAs
     referencePeriod: market.referencePeriod,
     feasibility,
     cityLevel,
-    compromises: findCompromises(market.deals, market.cities, criteria, feasibility),
+    compromises: findCompromises(market, criteria, feasibility),
     typicalForBudget: typicalForBudget(market.deals, criteria),
     houseParts: houseParts(market.deals, criteria),
     referenceDeals: referenceDeals(pool.deals, criteria),

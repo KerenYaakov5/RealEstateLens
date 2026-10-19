@@ -6,9 +6,10 @@ import type {
   NearbyCityDto,
 } from '@rel/shared';
 import { LruCache } from '../lib/lruCache.js';
-import { assess, type PricedMarket } from './assessment/assess.js';
+import { assess } from './assessment/assess.js';
 import { ASSESSMENT_CONFIG } from './assessment/config.js';
 import type { CompromiseCandidate } from './assessment/compromises.js';
+import type { PricedMarket } from './assessment/market.js';
 import type { SnapshotCity } from './assessment/types.js';
 import { distanceKm } from './geo/itm.js';
 import { createDealMapper } from './marketQueries.js';
@@ -50,12 +51,8 @@ function nearestCitiesWithData(market: PricedMarket, origin: SnapshotCity): Near
   if (origin.location === null) {
     return [];
   }
-  const counts = new Map<string, number>();
-  for (const deal of market.deals) {
-    counts.set(deal.cityKey, (counts.get(deal.cityKey) ?? 0) + 1);
-  }
   const from = origin.location;
-  return [...counts]
+  return [...market.indexes.dealCountByCity]
     .flatMap(([key, dealCount]) => {
       const city = market.cities.get(key);
       if (city === undefined || city.location === null || city.key === origin.key) {
@@ -95,18 +92,14 @@ export class MarketAssessmentService {
   }
 
   private compute(market: PricedMarket, query: AssessmentQuery): AssessmentOutcome {
-    const city = [...market.cities.values()].find((item) => {
-      return item.id === query.cityId;
-    });
+    const city = market.indexes.citiesById.get(query.cityId);
     if (city === undefined) {
       return { status: 'not-found', reason: 'unknown-city' };
     }
 
     const notices: AssessmentNoticeDto[] = [];
     let nearbyCitiesWithData: NearbyCityDto[] = [];
-    const cityHasDeals = market.deals.some((deal) => {
-      return deal.cityKey === city.key;
-    });
+    const cityHasDeals = market.indexes.dealCountByCity.has(city.key);
     if (!cityHasDeals) {
       nearbyCitiesWithData = nearestCitiesWithData(market, city);
       if (nearbyCitiesWithData.length === 0) {
@@ -120,10 +113,8 @@ export class MarketAssessmentService {
 
     let neighborhood: { id: number; name: string } | null = null;
     if (query.neighborhoodId !== undefined) {
-      const found = market.neighborhoods.find((item) => {
-        return item.id === query.neighborhoodId && item.cityKey === city.key;
-      });
-      if (found === undefined) {
+      const found = market.indexes.neighborhoodsById.get(query.neighborhoodId);
+      if (found === undefined || found.cityKey !== city.key) {
         return { status: 'not-found', reason: 'unknown-neighborhood' };
       }
       neighborhood = { id: found.id, name: found.name };

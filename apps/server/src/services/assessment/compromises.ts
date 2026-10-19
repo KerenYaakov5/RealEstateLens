@@ -4,7 +4,8 @@ import { ASSESSMENT_CONFIG } from './config.js';
 import { computeFeasibility, type Feasibility } from './feasibility.js';
 import { buildPool, type PoolCriteria } from './pool.js';
 import { nearestRank, sortedNumbers } from './stats.js';
-import type { PricedDeal, SnapshotCity } from './types.js';
+import type { PricedMarket } from './market.js';
+import type { PricedDeal } from './types.js';
 
 export type CompromiseType =
   | 'dropFeature'
@@ -41,7 +42,7 @@ export interface CompromiseCandidate {
 
 interface Context {
   deals: readonly PricedDeal[];
-  cities: ReadonlyMap<string, SnapshotCity>;
+  market: PricedMarket;
   criteria: MarketCriteria;
   baseline: Feasibility;
 }
@@ -168,13 +169,15 @@ function neighborhoodCandidates(context: Context): CompromiseCandidate[] {
 }
 
 function nearbyCityCandidates(context: Context): CompromiseCandidate[] {
-  const origin = context.cities.get(context.criteria.cityKey)?.location;
+  const origin = context.market.cities.get(context.criteria.cityKey)?.location;
   if (origin === undefined || origin === null) {
     return [];
   }
   const { neighborhood: _neighborhood, ...rest } = withoutBudget(context.criteria);
-  return [...context.cities.values()].flatMap((city) => {
-    if (city.key === context.criteria.cityKey || city.location === null) {
+  // Only cities that have deals can yield a compromise – skip the other ~1,460 localities.
+  return [...context.market.indexes.dealCountByCity.keys()].flatMap((cityKey) => {
+    const city = context.market.cities.get(cityKey);
+    if (city === undefined || city.key === context.criteria.cityKey || city.location === null) {
       return [];
     }
     const km = distanceKm(origin, city.location);
@@ -232,12 +235,11 @@ function raiseBudgetCandidate(context: Context): CompromiseCandidate[] {
 
 /** All compromises that improve feasibility, best first (by improvement, then pool size). */
 export function findCompromises(
-  deals: readonly PricedDeal[],
-  cities: ReadonlyMap<string, SnapshotCity>,
+  market: PricedMarket,
   criteria: MarketCriteria,
   baseline: Feasibility,
 ): CompromiseCandidate[] {
-  const context: Context = { deals, cities, criteria, baseline };
+  const context: Context = { deals: market.deals, market, criteria, baseline };
   return [
     ...dropFeatureCandidates(context),
     ...fewerRoomsCandidate(context),

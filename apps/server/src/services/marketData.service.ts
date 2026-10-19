@@ -5,7 +5,7 @@ import type { CityRepository } from '../repositories/city.repository.js';
 import type { DealRepository } from '../repositories/deal.repository.js';
 import type { NeighborhoodRepository } from '../repositories/neighborhood.repository.js';
 import type { PriceIndexRepository } from '../repositories/priceIndex.repository.js';
-import type { PricedMarket } from './assessment/assess.js';
+import { createPricedMarket, type PricedMarket } from './assessment/market.js';
 import { createPriceAdjuster } from './assessment/priceAdjuster.js';
 import type { SnapshotCity, SnapshotDeal } from './assessment/types.js';
 import { searchKey } from './search/textMatch.js';
@@ -150,12 +150,12 @@ export class MarketDataService {
       }),
     );
 
-    return {
+    return createPricedMarket({
       deals,
       cities,
       neighborhoods: neighborhoodRows,
       searchNames,
       referencePeriod: adjuster.referencePeriod,
-    };
+    });
   }
 }

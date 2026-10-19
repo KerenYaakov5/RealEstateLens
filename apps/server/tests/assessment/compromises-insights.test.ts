@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import {
-  assess,
-  UnknownCityError,
-  type PricedMarket,
-} from '../../src/services/assessment/assess.js';
+import { assess, UnknownCityError } from '../../src/services/assessment/assess.js';
+import { createPricedMarket } from '../../src/services/assessment/market.js';
 import { findCompromises } from '../../src/services/assessment/compromises.js';
 import { computeFeasibility } from '../../src/services/assessment/feasibility.js';
 import {
@@ -72,7 +69,14 @@ const CITIES = new Map<string, SnapshotCity>([
 function compromisesFor(deals: PricedDeal[], wanted = criteria()) {
   const { maxPrice, ...rest } = wanted;
   const baseline = computeFeasibility(buildPool(deals, rest), maxPrice);
-  return findCompromises(deals, CITIES, wanted, baseline);
+  const market = createPricedMarket({
+    deals,
+    cities: CITIES,
+    neighborhoods: [],
+    searchNames: new Map(),
+    referencePeriod: null,
+  });
+  return findCompromises(market, wanted, baseline);
 }
 
 function times(n: number, make: (i: number) => PricedDeal): PricedDeal[] {
@@ -261,13 +265,13 @@ describe('houseParts', () => {
 });
 
 describe('assess', () => {
-  const market: PricedMarket = {
+  const market = createPricedMarket({
     deals: times(6, (i) => makePriced({ priceNis: 1_500_000 + i * 200_000 })),
     cities: CITIES,
     neighborhoods: [],
     searchNames: new Map(),
     referencePeriod: '2026-07-01',
-  };
+  });
 
   it('returns the full assessment for a city', () => {
     const result = assess(market, criteria({ maxPrice: 2_000_000 }));

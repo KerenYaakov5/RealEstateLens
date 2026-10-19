@@ -1,27 +1,12 @@
 import type { CityDto, DealDto, DealsQuery, NeighborhoodDto, Page } from '@rel/shared';
-import type { PricedMarket } from './assessment/assess.js';
-import type { PricedDeal, SnapshotCity } from './assessment/types.js';
+import type { PricedMarket } from './assessment/market.js';
+import { neighborhoodKey, type PricedDeal } from './assessment/types.js';
 
 // Read-only queries over the in-memory market snapshot (no DB access per request).
 
-function neighborhoodKey(cityKey: string, name: string): string {
-  return `${cityKey}|${name}`;
-}
-
-function citiesById(market: PricedMarket): Map<number, SnapshotCity> {
-  return new Map(
-    [...market.cities.values()].map((city) => {
-      return [city.id, city] as const;
-    }),
-  );
-}
-
 /** Cities where we have deals (the full list of localities is reachable through search). */
 export function listCities(market: PricedMarket): CityDto[] {
-  const counts = new Map<string, number>();
-  for (const deal of market.deals) {
-    counts.set(deal.cityKey, (counts.get(deal.cityKey) ?? 0) + 1);
-  }
+  const counts = market.indexes.dealCountByCity;
   return [...market.cities.values()]
     .filter((city) => {
       return counts.has(city.key);
@@ -42,16 +27,11 @@ export function listCities(market: PricedMarket): CityDto[] {
 
 /** Neighborhoods of a city with their deal counts, or null when the city does not exist. */
 export function listNeighborhoods(market: PricedMarket, cityId: number): NeighborhoodDto[] | null {
-  const city = citiesById(market).get(cityId);
+  const city = market.indexes.citiesById.get(cityId);
   if (city === undefined) {
     return null;
   }
-  const counts = new Map<string, number>();
-  for (const deal of market.deals) {
-    if (deal.cityKey === city.key && deal.neighborhood !== null) {
-      counts.set(deal.neighborhood, (counts.get(deal.neighborhood) ?? 0) + 1);
-    }
-  }
+  const counts = market.indexes.dealCountByNeighborhood;
   return market.neighborhoods
     .filter((neighborhood) => {
       return neighborhood.cityKey === city.key;
@@ -60,7 +40,7 @@ export function listNeighborhoods(market: PricedMarket, cityId: number): Neighbo
       return {
         id: neighborhood.id,
         name: neighborhood.name,
-        dealCount: counts.get(neighborhood.name) ?? 0,
+        dealCount: counts.get(neighborhoodKey(city.key, neighborhood.name)) ?? 0,
       };
     })
     .sort((a, b) => {
@@ -104,13 +84,13 @@ function compareNullable(a: number | string | null, b: number | string | null): 
 
 /** Converts in-memory deals to the API shape (shared by /deals and /market-assessments). */
 export function createDealMapper(market: PricedMarket): (deal: PricedDeal) => DealDto {
-  const neighborhoodIds = new Map(
-    market.neighborhoods.map((neighborhood) => {
-      return [neighborhoodKey(neighborhood.cityKey, neighborhood.name), neighborhood.id] as const;
-    }),
-  );
+  const neighborhoodIds = market.indexes.neighborhoodIdByKey;
   return (deal) => {
     const city = market.cities.get(deal.cityKey);
+    if (city === undefined) {
+      // Deals are loaded joined with their city, so this means a broken snapshot – never invent one.
+      throw new Error(`Deal ${deal.dealId} refers to unknown city ${deal.cityKey}`);
+    }
     const neighborhoodId =
       deal.neighborhood === null
         ? undefined
@@ -118,7 +98,7 @@ export function createDealMapper(market: PricedMarket): (deal: PricedDeal) => De
     return {
       id: deal.id,
       dealId: deal.dealId,
-      city: { id: city?.id ?? 0, name: city?.nameHe ?? deal.cityKey },
+      city: { id: city.id, name: city.nameHe },
       neighborhood:
         deal.neighborhood === null || neighborhoodId === undefined
           ? null
@@ -143,18 +123,13 @@ export function createDealMapper(market: PricedMarket): (deal: PricedDeal) => De
 }
 
 export function searchDeals(market: PricedMarket, query: DealsQuery): Page<DealDto> {
-  const byId = citiesById(market);
-  const neighborhoodById = new Map(
-    market.neighborhoods.map((neighborhood) => {
-      return [neighborhood.id, neighborhood] as const;
-    }),
-  );
-
-  const cityKey = query.cityId === undefined ? undefined : (byId.get(query.cityId)?.key ?? null);
+  const { citiesById, neighborhoodsById } = market.indexes;
+  const cityKey =
+    query.cityId === undefined ? undefined : (citiesById.get(query.cityId)?.key ?? null);
   const neighborhood =
     query.neighborhoodId === undefined
       ? undefined
-      : (neighborhoodById.get(query.neighborhoodId) ?? null);
+      : (neighborhoodsById.get(query.neighborhoodId) ?? null);
   // An unknown city or neighborhood filter matches nothing (200 with an empty page).
   const unknownFilter = cityKey === null || neighborhood === null;
 
