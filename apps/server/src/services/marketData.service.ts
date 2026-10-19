@@ -93,7 +93,15 @@ export class MarketDataService {
           row.itmX !== null && row.itmY !== null ? { x: row.itmX, y: row.itmY } : null;
         return [
           row.key,
-          { id: row.id, key: row.key, nameHe: row.nameHe, nameEn: row.nameEn, location },
+          {
+            id: row.id,
+            key: row.key,
+            nameHe: row.nameHe,
+            nameEn: row.nameEn,
+            municipalStatus: row.municipalStatus,
+            population: row.population,
+            location,
+          },
         ];
       }),
     );

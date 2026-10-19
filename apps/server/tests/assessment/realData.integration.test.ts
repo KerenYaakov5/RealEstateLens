@@ -35,7 +35,7 @@ beforeAll(async () => {
   await handle.migrate();
   await seedDeals({ db: handle.db, filePath: seedFile, logger, today: new Date('2026-10-18') });
   const cityRepository = new CityRepository(handle.db);
-  await new LocalityService(cityRepository, offlineClient, logger).ensureCityCoordinates();
+  await new LocalityService(cityRepository, offlineClient, logger).ensureLocalities();
   const priceIndex = new PriceIndexRepository(handle.db);
   await priceIndex.upsertSeries(
     40010,
@@ -93,10 +93,13 @@ const scenarios: [string, MarketCriteria][] = [
 ];
 
 describe('in-memory market snapshot', () => {
-  it('holds all 518 deals and 18 cities with official coordinates', () => {
+  it('holds all 518 deals, every official locality, and coordinates for the 18 deal cities', () => {
+    const dealCities = new Set(market.deals.map((deal) => deal.cityKey));
+
     expect(market.deals).toHaveLength(518);
-    expect(market.cities.size).toBe(18);
-    expect([...market.cities.values()].every((city) => city.location !== null)).toBe(true);
+    expect(market.cities.size).toBe(1484);
+    expect(dealCities.size).toBe(18);
+    expect([...dealCities].every((key) => market.cities.get(key)?.location !== null)).toBe(true);
     expect(market.referencePeriod).toBe('2026-07-01');
   });
 

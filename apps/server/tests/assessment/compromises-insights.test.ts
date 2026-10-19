@@ -21,7 +21,15 @@ const NO_SAFE_ROOM = { safeRoom: false, elevator: true, parking: true, balcony: 
 const CITIES = new Map<string, SnapshotCity>([
   [
     'holon',
-    { id: 1, key: 'holon', nameHe: 'חולון', nameEn: 'Holon', location: { x: 179253, y: 658225 } },
+    {
+      id: 1,
+      key: 'holon',
+      nameHe: 'חולון',
+      nameEn: 'Holon',
+      municipalStatus: 0,
+      population: null,
+      location: { x: 179253, y: 658225 },
+    },
   ],
   [
     'bat-yam',
@@ -30,6 +38,8 @@ const CITIES = new Map<string, SnapshotCity>([
       key: 'bat-yam',
       nameHe: 'בת ים',
       nameEn: 'Bat Yam',
+      municipalStatus: 0,
+      population: null,
       location: { x: 176515, y: 658597 },
     },
   ],
@@ -40,12 +50,22 @@ const CITIES = new Map<string, SnapshotCity>([
       key: 'beer-sheva',
       nameHe: 'באר שבע',
       nameEn: "Be'er Sheva",
+      municipalStatus: 0,
+      population: null,
       location: { x: 179500, y: 573657 },
     },
   ],
   [
     'no-coords',
-    { id: 4, key: 'no-coords', nameHe: 'ללא מיקום', nameEn: 'No location', location: null },
+    {
+      id: 4,
+      key: 'no-coords',
+      nameHe: 'ללא מיקום',
+      nameEn: 'No location',
+      municipalStatus: 0,
+      population: null,
+      location: null,
+    },
   ],
 ]);
 

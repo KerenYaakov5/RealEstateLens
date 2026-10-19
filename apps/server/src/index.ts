@@ -38,7 +38,7 @@ async function start(): Promise<void> {
     cityRepository,
     new LocalitiesClient(httpClient),
     logger,
-  ).ensureCityCoordinates();
+  ).ensureLocalities();
 
   const earliestDeal = await new DealRepository(database.db).earliestDealDate();
   const priceIndexService = new PriceIndexService(

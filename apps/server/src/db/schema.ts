@@ -44,13 +44,23 @@ export const users = pgTable('users', {
   ...timestamps,
 });
 
+/**
+ * Every locality in Israel (CBS localities file), not only cities with deals. The 18 reference
+ * cities keep their hand-checked names and keys; all others use the official names and the key
+ * `cbs-<code>`.
+ */
 export const cities = pgTable('cities', {
   id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
   key: text('key').notNull().unique(),
   nameHe: text('name_he').notNull(),
-  nameEn: text('name_en').notNull(),
+  /** Official English name; missing for some localities in the source. */
+  nameEn: text('name_en'),
   /** Official CBS locality code (סמל יישוב). */
   cbsCode: integer('cbs_code').unique(),
+  /** CBS municipal status code: 0 = city, 99 = local council, others = regional council / none. */
+  municipalStatus: integer('municipal_status'),
+  /** CBS 2023 population estimate; used only to rank search suggestions. */
+  population: integer('population'),
   /** ITM coordinates in meters, only from an official source (see coordinatesSource). */
   itmX: integer('itm_x'),
   itmY: integer('itm_y'),

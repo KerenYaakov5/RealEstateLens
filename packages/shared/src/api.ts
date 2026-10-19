@@ -76,7 +76,8 @@ export type DealsQuery = z.infer<typeof dealsQuerySchema>;
 export interface CityDto {
   id: number;
   name: string;
-  nameEn: string;
+  /** Missing for some localities in the official source. */
+  nameEn: string | null;
   dealCount: number;
   /** False when no official coordinates exist (the city is then never offered as "nearby"). */
   hasOfficialLocation: boolean;

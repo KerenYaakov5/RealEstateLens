@@ -1,10 +1,20 @@
-import { and, eq, isNotNull, isNull, sql } from 'drizzle-orm';
+import { and, count, isNotNull, isNull, sql } from 'drizzle-orm';
 import type { CityReference } from '../data/cities.js';
 import type { Database } from '../db/client.js';
 import { cities, cityAliases } from '../db/schema.js';
 import { cleanText, toMatchKey } from '../import/normalizers/text.js';
 import type { ItmPoint } from '../services/geo/itm.js';
-import { excludedSet } from './upsertHelpers.js';
+import { chunk, excludedSet } from './upsertHelpers.js';
+
+export interface OfficialLocality {
+  code: number;
+  nameHe: string;
+  nameEn: string | null;
+  transliteration: string | null;
+  municipalStatus: number | null;
+  population: number | null;
+  location: ItmPoint | null;
+}
 
 export interface CityNeedingCoordinates {
   id: number;
@@ -78,10 +88,21 @@ export class CityRepository {
         key: cities.key,
         nameHe: cities.nameHe,
         nameEn: cities.nameEn,
+        municipalStatus: cities.municipalStatus,
+        population: cities.population,
         itmX: cities.itmX,
         itmY: cities.itmY,
       })
       .from(cities);
+  }
+
+  /** Number of stored localities that come from the official CBS file. */
+  async countLocalities(): Promise<number> {
+    const [row] = await this.db
+      .select({ value: count() })
+      .from(cities)
+      .where(isNotNull(cities.cbsCode));
+    return row?.value ?? 0;
   }
 
   /** Cities with an official CBS code whose coordinates have not been loaded yet. */
@@ -95,16 +116,79 @@ export class CityRepository {
     });
   }
 
-  async setCoordinates(cityId: number, point: ItmPoint, source: string): Promise<void> {
-    await this.db
-      .update(cities)
-      .set({
-        itmX: point.x,
-        itmY: point.y,
-        coordinatesSource: source,
-        coordinatesUpdatedAt: sql`now()`,
-        updatedAt: sql`now()`,
+  /**
+   * Inserts every official locality, matched by CBS code. Existing rows (e.g. the reference
+   * cities) keep their hand-checked key and names; only official facts are refreshed.
+   * Official names become search aliases unless a spelling is already taken.
+   */
+  async upsertLocalities(localities: readonly OfficialLocality[], source: string): Promise<void> {
+    for (const batch of chunk(localities, 200)) {
+      await this.db
+        .insert(cities)
+        .values(
+          batch.map((locality) => {
+            return {
+              key: `cbs-${locality.code}`,
+              nameHe: locality.nameHe,
+              nameEn: locality.nameEn,
+              cbsCode: locality.code,
+              municipalStatus: locality.municipalStatus,
+              population: locality.population,
+              itmX: locality.location?.x ?? null,
+              itmY: locality.location?.y ?? null,
+              coordinatesSource: locality.location === null ? null : source,
+              coordinatesUpdatedAt: locality.location === null ? null : sql`now()`,
+            };
+          }),
+        )
+        .onConflictDoUpdate({
+          target: cities.cbsCode,
+          set: {
+            ...excludedSet(cities, [
+              'municipalStatus',
+              'population',
+              'itmX',
+              'itmY',
+              'coordinatesSource',
+              'coordinatesUpdatedAt',
+            ]),
+            updatedAt: sql`now()`,
+          },
+        });
+    }
+
+    const ids = await this.db
+      .select({ id: cities.id, cbsCode: cities.cbsCode })
+      .from(cities)
+      .where(isNotNull(cities.cbsCode));
+    const idByCode = new Map(
+      ids.map((row) => {
+        return [row.cbsCode, row.id] as const;
+      }),
+    );
+    const aliases = localities.flatMap((locality) => {
+      const cityId = idByCode.get(locality.code);
+      if (cityId === undefined) {
+        return [];
+      }
+      return [locality.nameHe, locality.nameEn, locality.transliteration].flatMap((name) => {
+        const cleaned = cleanText(name ?? null);
+        return cleaned === null ? [] : [{ cityId, alias: cleaned, matchKey: toMatchKey(cleaned) }];
+      });
+    });
+    for (const batch of chunk(aliases, 500)) {
+      await this.db.insert(cityAliases).values(batch).onConflictDoNothing();
+    }
+  }
+
+  /** Every search alias with its city id – for the in-memory search index. */
+  async findAllAliases() {
+    return this.db
+      .select({
+        cityId: cityAliases.cityId,
+        alias: cityAliases.alias,
+        matchKey: cityAliases.matchKey,
       })
-      .where(eq(cities.id, cityId));
+      .from(cityAliases);
   }
 }

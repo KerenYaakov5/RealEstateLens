@@ -43,6 +43,13 @@
       "when": 1792400035001,
       "tag": "0005_identity_primary_keys",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792403696047,
+      "tag": "0006_all_localities",
+      "breakpoints": true
     }
   ]
 }

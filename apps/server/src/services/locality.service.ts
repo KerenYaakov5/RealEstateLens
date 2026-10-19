@@ -8,7 +8,7 @@ import {
   type LocalitiesClient,
 } from '../clients/dataGov/localitiesClient.js';
 import type { Logger } from '../lib/logger.js';
-import type { CityRepository } from '../repositories/city.repository.js';
+import type { CityRepository, OfficialLocality } from '../repositories/city.repository.js';
 import { parseCbsCoordinates } from './geo/itm.js';
 
 export const DEFAULT_SNAPSHOT_PATH = path.resolve(
@@ -25,23 +25,29 @@ const snapshotSchema = z.object({
       nameHe: z.string(),
       nameEn: z.string().nullable(),
       coordinates: z.number().nullable(),
+      transliteration: z.string().nullable().optional(),
+      municipalStatus: z.number().nullable().optional(),
+      population: z.number().nullable().optional(),
     }),
   ),
 });
 
-export interface CoordinatesOutcome {
+type Snapshot = z.infer<typeof snapshotSchema>;
+
+export interface LocalitiesOutcome {
   status: 'up-to-date' | 'loaded';
-  /** Where the coordinates came from: the live API or the committed snapshot. */
+  /** Where the data came from: the live API or the committed snapshot. */
   origin?: 'api' | 'snapshot';
-  updated: string[];
-  /** Cities whose official record has no usable coordinates – they are left unknown. */
-  unresolved: string[];
+  loaded: number;
+  /** Localities whose official record has no usable coordinates – left unknown. */
+  withoutCoordinates: number;
 }
 
 /**
- * Loads official city coordinates. Order: DB → data.gov.il API → committed snapshot of the
- * same CBS file. Nothing is ever estimated: a city without official coordinates stays
- * without them (and is then never offered as a "nearby city").
+ * Keeps every official locality (CBS localities file) in the DB: names, English names,
+ * transliterations, population, municipal status and coordinates. Order: DB → data.gov.il API
+ * → committed snapshot of the same file. Nothing is estimated: a locality without official
+ * coordinates stays without them (and is then never offered as a "nearby city").
  */
 export class LocalityService {
   constructor(
@@ -51,40 +57,49 @@ export class LocalityService {
     private readonly snapshotPath: string = DEFAULT_SNAPSHOT_PATH,
   ) {}
 
-  async ensureCityCoordinates(): Promise<CoordinatesOutcome> {
-    const missing = await this.cities.findMissingCoordinates();
-    if (missing.length === 0) {
-      return { status: 'up-to-date', updated: [], unresolved: [] };
+  async ensureLocalities(): Promise<LocalitiesOutcome> {
+    const [stored, missingCoordinates, snapshot] = await Promise.all([
+      this.cities.countLocalities(),
+      this.cities.findMissingCoordinates(),
+      this.readSnapshot(),
+    ]);
+    // The DB is complete when it holds at least as many localities as the official snapshot
+    // and none of them is still waiting for coordinates that the file can provide.
+    const complete = stored >= snapshot.localities.length && missingCoordinates.length === 0;
+    if (complete) {
+      return { status: 'up-to-date', loaded: 0, withoutCoordinates: 0 };
     }
 
-    const { localities, origin, source } = await this.loadLocalities();
-    const byCode = new Map(
-      localities.map((locality) => {
-        return [locality.code, locality] as const;
-      }),
+    const { localities, origin, source } = await this.load(snapshot);
+    const official = localities.map((locality): OfficialLocality => {
+      return {
+        code: locality.code,
+        nameHe: locality.nameHe,
+        nameEn: locality.nameEn,
+        transliteration: locality.transliteration ?? null,
+        municipalStatus: locality.municipalStatus ?? null,
+        population: locality.population ?? null,
+        location: parseCbsCoordinates(locality.coordinates),
+      };
+    });
+    await this.cities.upsertLocalities(official, source);
+
+    const withoutCoordinates = official.filter((locality) => {
+      return locality.location === null;
+    }).length;
+    this.logger.info(
+      { origin, loaded: official.length, withoutCoordinates },
+      'Official localities loaded',
     );
-
-    const updated: string[] = [];
-    const unresolved: string[] = [];
-    for (const city of missing) {
-      const point = parseCbsCoordinates(byCode.get(city.cbsCode)?.coordinates);
-      if (point === null) {
-        unresolved.push(city.key);
-        continue;
-      }
-      await this.cities.setCoordinates(city.id, point, source);
-      updated.push(city.key);
-    }
-
-    if (unresolved.length > 0) {
-      this.logger.warn({ unresolved }, 'No official coordinates for some cities – left unknown');
-    }
-    this.logger.info({ origin, updated: updated.length }, 'City coordinates loaded');
-    return { status: 'loaded', origin, updated, unresolved };
+    return { status: 'loaded', origin, loaded: official.length, withoutCoordinates };
   }
 
-  private async loadLocalities(): Promise<{
-    localities: CbsLocality[];
+  private async readSnapshot(): Promise<Snapshot> {
+    return snapshotSchema.parse(JSON.parse(await readFile(this.snapshotPath, 'utf8')) as unknown);
+  }
+
+  private async load(snapshot: Snapshot): Promise<{
+    localities: (CbsLocality | Snapshot['localities'][number])[];
     origin: 'api' | 'snapshot';
     source: string;
   }> {
@@ -93,9 +108,6 @@ export class LocalityService {
       return { localities, origin: 'api', source: CBS_LOCALITIES_SOURCE };
     } catch (err) {
       this.logger.warn({ err }, 'Localities API unavailable – using the committed snapshot');
-      const snapshot = snapshotSchema.parse(
-        JSON.parse(await readFile(this.snapshotPath, 'utf8')) as unknown,
-      );
       return {
         localities: snapshot.localities,
         origin: 'snapshot',

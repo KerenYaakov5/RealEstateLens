@@ -29,7 +29,10 @@ export interface SnapshotCity {
   id: number;
   key: string;
   nameHe: string;
-  nameEn: string;
+  nameEn: string | null;
+  /** CBS municipal status code (0 city, 99 local council) – ranks search suggestions. */
+  municipalStatus: number | null;
+  population: number | null;
   /** Official coordinates (CBS), or null – a city without them is never "nearby". */
   location: ItmPoint | null;
 }

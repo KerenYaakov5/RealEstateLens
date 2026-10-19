@@ -16,12 +16,16 @@ function citiesById(market: PricedMarket): Map<number, SnapshotCity> {
   );
 }
 
+/** Cities where we have deals (the full list of localities is reachable through search). */
 export function listCities(market: PricedMarket): CityDto[] {
   const counts = new Map<string, number>();
   for (const deal of market.deals) {
     counts.set(deal.cityKey, (counts.get(deal.cityKey) ?? 0) + 1);
   }
   return [...market.cities.values()]
+    .filter((city) => {
+      return counts.has(city.key);
+    })
     .map((city): CityDto => {
       return {
         id: city.id,

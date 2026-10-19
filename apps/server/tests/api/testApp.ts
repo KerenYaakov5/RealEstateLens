@@ -49,7 +49,7 @@ export async function createTestApp(setup: TestAppSetup = {}): Promise<TestApp> 
   const cities = new CityRepository(handle.db);
   if (setup.withSeedData === true) {
     await seedDeals({ db: handle.db, filePath: SEED_FILE, logger, today: new Date('2026-10-18') });
-    await new LocalityService(cities, offlineLocalities, logger).ensureCityCoordinates();
+    await new LocalityService(cities, offlineLocalities, logger).ensureLocalities();
   }
   const marketData = new MarketDataService(
     {
