@@ -1,5 +1,6 @@
 import { LoginPage } from './auth/LoginPage';
 import { useLogout, useSession } from './auth/session';
+import { MainScreen } from './features/MainScreen';
 
 function AppHeader({ email }: { email: string }) {
   const logout = useLogout();
@@ -49,9 +50,7 @@ export function App() {
   return (
     <>
       <AppHeader email={session.data.email} />
-      <main className="mx-auto max-w-6xl px-4 py-8">
-        <p className="text-ink-soft">כאן יופיע המסך הראשי.</p>
-      </main>
+      <MainScreen />
     </>
   );
 }
