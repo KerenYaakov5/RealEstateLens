@@ -46,6 +46,8 @@ export type CriteriaAction =
   | { type: 'setMaxPrice'; maxPrice: number }
   | { type: 'setRooms'; rooms: number | null }
   | { type: 'togglePropertyType'; propertyType: PropertyType }
+  /** "הכל": no property type filter. */
+  | { type: 'clearPropertyTypes' }
   | { type: 'setMinSize'; minSize: number | null }
   | { type: 'setFeature'; feature: Feature; preference: FeaturePreference }
   | { type: 'applyCompromise'; compromise: CompromiseDto }
@@ -103,6 +105,8 @@ export function criteriaReducer(state: CriteriaState, action: CriteriaAction): C
           : [...state.propertyTypes, action.propertyType],
       };
     }
+    case 'clearPropertyTypes':
+      return { ...state, propertyTypes: [] };
     case 'setMinSize':
       return { ...state, minSize: action.minSize };
     case 'setFeature':

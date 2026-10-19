@@ -2,6 +2,7 @@ import { FEATURE_LABELS, FEATURES, PROPERTY_TYPES, type PropertyType } from '@re
 import { useRef, type Dispatch } from 'react';
 import { searchCities, searchNeighborhoods } from '../../api/places';
 import { Autocomplete } from '../../components/Autocomplete';
+import { ChoiceChip } from '../../components/ChoiceChip';
 import { MobileCollapsible } from '../../components/MobileCollapsible';
 import { formatPriceShort } from '../../lib/format';
 import { BUDGET, type CriteriaAction, type CriteriaState } from './criteria';
@@ -15,7 +16,7 @@ interface CriteriaPanelProps {
   onReset: () => void;
 }
 
-/** "4 חדרים · ממ"ד – חובה · מעלית – רצוי", shown on a collapsed panel. */
+/** "4 חדרים · ממ"ד – חובה · דירה · מ-90 מ"ר", shown on a collapsed panel. */
 function choicesSummary(state: CriteriaState): string {
   const parts: string[] = [];
   if (state.rooms !== null) {
@@ -26,6 +27,12 @@ function choicesSummary(state: CriteriaState): string {
     if (preference !== 'any') {
       parts.push(`${FEATURE_LABELS[feature]} – ${preference === 'required' ? 'חובה' : 'רצוי'}`);
     }
+  }
+  if (state.propertyTypes.length > 0) {
+    parts.push(state.propertyTypes.map((type) => PROPERTY_TYPES[type]).join(', '));
+  }
+  if (state.minSize !== null) {
+    parts.push(`מ-${state.minSize} מ"ר`);
   }
   return parts.length === 0 ? 'לא נבחרו דרישות' : parts.join(' · ');
 }
@@ -50,7 +57,7 @@ export function CriteriaPanel({ state, dispatch, onReset }: CriteriaPanelProps) 
 
       <Autocomplete
         label="עיר או יישוב"
-        placeholder="למשל: רמת גן, Herzliya…"
+        placeholder="למשל: רמת גן, הרצליה…"
         queryKey={['citySearch']}
         search={searchCities}
         selectedText={city?.name ?? ''}
@@ -112,19 +119,15 @@ export function CriteriaPanel({ state, dispatch, onReset }: CriteriaPanelProps) 
             {[null, ...ROOM_CHOICES].map((rooms) => {
               const selected = state.rooms === rooms;
               return (
-                <button
+                <ChoiceChip
                   key={rooms ?? 'any'}
-                  type="button"
-                  aria-pressed={selected}
+                  selected={selected}
                   onClick={() => {
                     dispatch({ type: 'setRooms', rooms });
                   }}
-                  className={`rounded-xl px-3 py-1.5 text-sm font-medium transition ${
-                    selected ? 'bg-brand text-white' : 'bg-sand text-ink-soft hover:text-ink'
-                  }`}
                 >
                   {rooms === null ? 'לא משנה' : rooms}
-                </button>
+                </ChoiceChip>
               );
             })}
           </div>
@@ -143,58 +146,52 @@ export function CriteriaPanel({ state, dispatch, onReset }: CriteriaPanelProps) 
             />
           ))}
         </div>
-      </MobileCollapsible>
 
-      <details className="group rounded-xl border border-line px-3 py-2">
-        <summary className="cursor-pointer text-sm font-medium text-ink-soft">
-          דרישות נוספות
-        </summary>
-        <div className="mt-3 space-y-4">
-          <fieldset>
-            <legend className="mb-1.5 text-sm font-medium text-ink-soft">סוג נכס</legend>
-            <div className="flex flex-wrap gap-1.5">
-              {(Object.entries(PROPERTY_TYPES) as [PropertyType, string][]).map(([key, label]) => {
-                const selected = state.propertyTypes.includes(key);
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    aria-pressed={selected}
-                    onClick={() => {
-                      dispatch({ type: 'togglePropertyType', propertyType: key });
-                    }}
-                    className={`rounded-xl px-3 py-1.5 text-sm transition ${
-                      selected ? 'bg-brand text-white' : 'bg-sand text-ink-soft hover:text-ink'
-                    }`}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-            <p className="mt-1 text-xs text-muted">בלי בחירה = כל הסוגים</p>
-          </fieldset>
-
-          <label className="block">
-            <span className="mb-1 block text-sm font-medium text-ink-soft">גודל מינימלי (מ"ר)</span>
-            <input
-              type="number"
-              inputMode="numeric"
-              min={10}
-              max={1000}
-              value={state.minSize ?? ''}
-              onChange={(event) => {
-                const value = event.target.valueAsNumber;
-                dispatch({
-                  type: 'setMinSize',
-                  minSize: Number.isFinite(value) && value > 0 ? Math.round(value) : null,
-                });
+        <fieldset>
+          <legend className="mb-1.5 text-sm font-medium text-ink-soft">סוג נכס</legend>
+          <div className="flex flex-wrap gap-1.5">
+            <ChoiceChip
+              selected={state.propertyTypes.length === 0}
+              onClick={() => {
+                dispatch({ type: 'clearPropertyTypes' });
               }}
-              className="num w-32 rounded-xl border border-line bg-canvas px-3 py-2"
-            />
-          </label>
-        </div>
-      </details>
+            >
+              הכל
+            </ChoiceChip>
+            {(Object.entries(PROPERTY_TYPES) as [PropertyType, string][]).map(([key, label]) => (
+              <ChoiceChip
+                key={key}
+                selected={state.propertyTypes.includes(key)}
+                onClick={() => {
+                  dispatch({ type: 'togglePropertyType', propertyType: key });
+                }}
+              >
+                {label}
+              </ChoiceChip>
+            ))}
+          </div>
+        </fieldset>
+
+        <label className="block">
+          <span className="mb-1 block text-sm font-medium text-ink-soft">גודל מינימלי (מ"ר)</span>
+          <input
+            type="number"
+            inputMode="numeric"
+            min={10}
+            max={1000}
+            placeholder="120"
+            value={state.minSize ?? ''}
+            onChange={(event) => {
+              const value = event.target.valueAsNumber;
+              dispatch({
+                type: 'setMinSize',
+                minSize: Number.isFinite(value) && value > 0 ? Math.round(value) : null,
+              });
+            }}
+            className="num w-32 rounded-xl border border-line bg-canvas px-3 py-2"
+          />
+        </label>
+      </MobileCollapsible>
 
       <div className="border-t border-line pt-4 text-center">
         <button
@@ -202,7 +199,7 @@ export function CriteriaPanel({ state, dispatch, onReset }: CriteriaPanelProps) 
           onClick={() => {
             confirmDialog.current?.showModal();
           }}
-          className="text-xs text-muted underline-offset-2 hover:text-bad hover:underline"
+          className="rounded-xl border border-line px-4 py-2 text-sm font-medium text-ink-soft transition hover:border-bad hover:bg-bad-soft hover:text-bad"
         >
           איפוס כל הבחירות
         </button>

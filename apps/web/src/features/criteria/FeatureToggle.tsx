@@ -12,7 +12,10 @@ interface FeatureToggleProps {
   onChange: (value: FeaturePreference) => void;
 }
 
-/** Three-way choice for a yes/no feature, as an accessible radio group. */
+/**
+ * Three-way choice for a yes/no feature, as an accessible radio group. The three options have
+ * equal widths and the same inset, whichever one is selected.
+ */
 export function FeatureToggle({ label, value, onChange }: FeatureToggleProps) {
   return (
     <fieldset className="flex items-center justify-between gap-3">
@@ -20,18 +23,18 @@ export function FeatureToggle({ label, value, onChange }: FeatureToggleProps) {
       <span aria-hidden="true" className="text-sm font-medium">
         {label}
       </span>
-      <div className="flex rounded-xl bg-sand p-0.5">
+      <div className="grid grid-cols-3 gap-1 rounded-xl bg-sand p-1">
         {OPTIONS.map((option) => {
           const selected = option.value === value;
           return (
             <label
               key={option.value}
-              className={`cursor-pointer rounded-lg px-2.5 py-1 text-xs font-medium transition ${
+              className={`rounded-lg px-2.5 py-1 text-center text-xs font-medium transition ${
                 selected
                   ? option.value === 'required'
-                    ? 'bg-brand text-white'
+                    ? 'bg-brand text-white shadow-sm'
                     : 'bg-surface text-ink shadow-sm'
-                  : 'text-ink-soft hover:text-ink'
+                  : 'text-ink-soft hover:bg-surface/60 hover:text-ink'
               }`}
             >
               <input

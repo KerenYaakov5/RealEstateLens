@@ -48,6 +48,22 @@
     font-variant-numeric: tabular-nums;
   }
 
+  /* Tailwind 4 gives buttons the default arrow cursor; everything clickable gets a pointer. */
+  button:not(:disabled),
+  [role='button'],
+  [role='option'],
+  summary,
+  label:has(> input[type='radio']),
+  input[type='range'],
+  select {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  input:disabled {
+    cursor: not-allowed;
+  }
+
   :focus-visible {
     outline: 3px solid var(--color-brand);
     outline-offset: 2px;

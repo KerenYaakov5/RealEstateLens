@@ -68,6 +68,12 @@ describe('criteriaReducer', () => {
     expect(on.propertyTypes).toEqual(['penthouse']);
     expect(off.propertyTypes).toEqual([]);
   });
+
+  it('"הכל" clears every property type choice', () => {
+    const some: CriteriaState = { ...withCity, propertyTypes: ['penthouse', 'duplex'] };
+
+    expect(criteriaReducer(some, { type: 'clearPropertyTypes' }).propertyTypes).toEqual([]);
+  });
 });
 
 describe('applying a compromise card', () => {
