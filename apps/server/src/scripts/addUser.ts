@@ -10,6 +10,29 @@ import { emailArgument, promptNewPassword } from './passwordPrompt.js';
 // Adds a user to the configured database: the local PGlite database when DATABASE_URL is not
 // set, otherwise that database. With PGlite, stop the server first (one process at a time).
 
+/**
+ * PGlite is single-process: a running server keeps its own copy in memory, so it would not see a
+ * user added now, and its writes can overwrite ours. Refuse while a local server is up.
+ */
+async function localServerIsRunning(): Promise<boolean> {
+  try {
+    const response = await fetch(`http://localhost:${env.PORT}/api/v1/health`, {
+      signal: AbortSignal.timeout(1000),
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+if (env.DATABASE_URL === undefined && (await localServerIsRunning())) {
+  stdout.write(
+    `A local server is running on port ${env.PORT}. Stop it first (Ctrl+C), then run this again –\n` +
+      'the local database can be used by one process at a time.\n',
+  );
+  process.exit(1);
+}
+
 const email = emailArgument('npm run user:add -- user@example.com');
 const password = await promptNewPassword();
 
