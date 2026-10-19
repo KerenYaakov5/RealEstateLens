@@ -25,6 +25,8 @@ const envSchema = z
     DATABASE_URL: optionalString(z.url()),
     PGLITE_DATA_DIR: z.string().default(path.join(serverRoot, '.pglite')),
     SEED_FILE_PATH: z.string().default(path.join(serverRoot, 'data', 'madlan-sample.xlsx')),
+    // Built web client served by this server (skipped when the folder has no index.html).
+    WEB_DIST_PATH: z.string().default(path.join(serverRoot, '..', 'web', 'dist')),
 
     // Sessions
     JWT_SECRET: optionalString(z.string().min(32)),

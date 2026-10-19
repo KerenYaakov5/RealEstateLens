@@ -54,6 +54,24 @@ describe('POST /api/v1/sessions', () => {
     expect(res.status).toBe(400);
   });
 
+  it('answers malformed JSON with 400, not a server error', async () => {
+    const res = await request(testApp.app)
+      .post('/api/v1/sessions')
+      .set('content-type', 'application/json')
+      .send('{"email": broken');
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe('BAD_REQUEST');
+  });
+
+  it('answers an oversized body with 413', async () => {
+    const res = await request(testApp.app)
+      .post('/api/v1/sessions')
+      .send({ email: 'a@b.co', password: 'x'.repeat(200_000) });
+
+    expect(res.status).toBe(413);
+  });
+
   it('rejects a deactivated user', async () => {
     await testApp.handle.db
       .update(users)

@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import cookieParser from 'cookie-parser';
+import helmet from 'helmet';
 import express, { Router, type Express } from 'express';
 import { pinoHttp } from 'pino-http';
 import { MAX_URL_LENGTH } from '@rel/shared';
@@ -11,6 +12,7 @@ import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { apiRateLimit, loginRateLimit } from './middleware/rateLimits.js';
 import { requireAuth } from './middleware/requireAuth.js';
 import { limitUrlLength } from './middleware/urlLength.js';
+import { createWebAppRouter } from './middleware/webApp.js';
 import { createHealthRouter } from './routes/health.routes.js';
 import {
   createAssessmentRouter,
@@ -30,6 +32,8 @@ export interface AppOptions {
   rateLimitPerMinute: number;
   loginMaxAttempts: number;
   loginWindowMinutes: number;
+  /** Folder of the built web client; null = API only. */
+  webDistPath: string | null;
 }
 
 export interface AppDeps {
@@ -42,6 +46,17 @@ export function createApp(deps: AppDeps): Express {
   const app = express();
 
   app.disable('x-powered-by');
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          // Only our own code; the Hebrew font comes from Google Fonts.
+          'style-src': ["'self'", 'https://fonts.googleapis.com'],
+          'font-src': ["'self'", 'https://fonts.gstatic.com'],
+        },
+      },
+    }),
+  );
   if (deps.options.trustProxy) {
     app.set('trust proxy', 1);
   }
@@ -87,6 +102,12 @@ export function createApp(deps: AppDeps): Express {
 
   app.use('/api/v1', api);
   app.use('/api', notFoundHandler);
+
+  const webApp =
+    deps.options.webDistPath === null ? null : createWebAppRouter(deps.options.webDistPath);
+  if (webApp !== null) {
+    app.use(webApp);
+  }
   app.use(errorHandler);
 
   return app;

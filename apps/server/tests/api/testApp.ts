@@ -78,6 +78,7 @@ export async function createTestApp(setup: TestAppSetup = {}): Promise<TestApp> 
       rateLimitPerMinute: 1000,
       loginMaxAttempts: 5,
       loginWindowMinutes: 15,
+      webDistPath: null,
       ...setup.options,
     },
   });

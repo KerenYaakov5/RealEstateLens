@@ -77,6 +77,7 @@ async function start(): Promise<void> {
       rateLimitPerMinute: env.RATE_LIMIT_PER_MINUTE,
       loginMaxAttempts: env.LOGIN_MAX_ATTEMPTS,
       loginWindowMinutes: env.LOGIN_WINDOW_MINUTES,
+      webDistPath: env.WEB_DIST_PATH,
     },
   });
   const server = app.listen(env.PORT, () => {
