@@ -71,6 +71,17 @@ export const dealsQuerySchema = z.object({
 
 export type DealsQuery = z.infer<typeof dealsQuerySchema>;
 
+/** Minimum characters for a place search (matches the client, which also waits for a pause). */
+export const MIN_SEARCH_LENGTH = 3;
+export const MAX_SEARCH_LENGTH = 100;
+
+/** `?search=` on GET /cities and GET /cities/:cityId/neighborhoods. */
+export const placeSearchQuerySchema = z.object({
+  search: z.string().trim().min(MIN_SEARCH_LENGTH).max(MAX_SEARCH_LENGTH).optional(),
+});
+
+export type MatchKind = 'exact' | 'prefix' | 'word' | 'contains' | 'fuzzy';
+
 // ---- Response shapes ----
 
 export interface CityDto {
@@ -87,6 +98,15 @@ export interface NeighborhoodDto {
   id: number;
   name: string;
   dealCount: number;
+}
+
+/** A search hit: how the typed text matched (exact, start of name, a word, inside, or a typo). */
+export interface CitySearchResultDto extends CityDto {
+  match: MatchKind;
+}
+
+export interface NeighborhoodSearchResultDto extends NeighborhoodDto {
+  match: MatchKind;
 }
 
 export interface DealDto {

@@ -19,6 +19,8 @@ export interface PricedMarket {
   /** Keyed by city key (the engine's identifier). */
   cities: ReadonlyMap<string, SnapshotCity>;
   neighborhoods: readonly SnapshotNeighborhood[];
+  /** Search keys (normalized names and aliases) per city key – precomputed for fast search. */
+  searchNames: ReadonlyMap<string, readonly string[]>;
   /** The CBS index month prices are expressed in (YYYY-MM-01), or null. */
   referencePeriod: string | null;
 }

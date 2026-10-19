@@ -8,6 +8,7 @@ import type { PriceIndexRepository } from '../repositories/priceIndex.repository
 import type { PricedMarket } from './assessment/assess.js';
 import { createPriceAdjuster } from './assessment/priceAdjuster.js';
 import type { SnapshotCity, SnapshotDeal } from './assessment/types.js';
+import { searchKey } from './search/textMatch.js';
 
 const DEFAULT_TTL_MS = 10 * 60 * 1000;
 
@@ -49,9 +50,10 @@ export class MarketDataService {
 
   private async load(): Promise<PricedMarket> {
     const startedAt = Date.now();
-    const [dealRows, cityRows, neighborhoodRows, indexRows] = await Promise.all([
+    const [dealRows, cityRows, aliasRows, neighborhoodRows, indexRows] = await Promise.all([
       this.repositories.deals.findAllForSnapshot(),
       this.repositories.cities.findAll(),
+      this.repositories.cities.findAllAliases(),
       this.repositories.neighborhoods.findAll(),
       this.repositories.priceIndex.findSeries(DWELLING_PRICES_SERIES),
     ]);
@@ -115,10 +117,44 @@ export class MarketDataService {
       },
       'Market snapshot loaded into memory',
     );
+    const keyById = new Map(
+      cityRows.map((row) => {
+        return [row.id, row.key] as const;
+      }),
+    );
+    const names = new Map<string, Set<string>>();
+    const addName = (cityKey: string, name: string | null): void => {
+      if (name === null) {
+        return;
+      }
+      const key = searchKey(name);
+      if (key.length > 0) {
+        const set = names.get(cityKey) ?? new Set<string>();
+        set.add(key);
+        names.set(cityKey, set);
+      }
+    };
+    for (const row of cityRows) {
+      addName(row.key, row.nameHe);
+      addName(row.key, row.nameEn);
+    }
+    for (const alias of aliasRows) {
+      const cityKey = keyById.get(alias.cityId);
+      if (cityKey !== undefined) {
+        addName(cityKey, alias.alias);
+      }
+    }
+    const searchNames = new Map(
+      [...names].map(([cityKey, set]) => {
+        return [cityKey, [...set]] as const;
+      }),
+    );
+
     return {
       deals,
       cities,
       neighborhoods: neighborhoodRows,
+      searchNames,
       referencePeriod: adjuster.referencePeriod,
     };
   }

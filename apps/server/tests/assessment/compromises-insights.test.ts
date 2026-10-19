@@ -265,6 +265,7 @@ describe('assess', () => {
     deals: times(6, (i) => makePriced({ priceNis: 1_500_000 + i * 200_000 })),
     cities: CITIES,
     neighborhoods: [],
+    searchNames: new Map(),
     referencePeriod: '2026-07-01',
   };
 

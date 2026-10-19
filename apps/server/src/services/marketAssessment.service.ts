@@ -1,15 +1,28 @@
-import type { AssessmentQuery, CompromiseDto, MarketAssessmentDto } from '@rel/shared';
+import type {
+  AssessmentNoticeDto,
+  AssessmentQuery,
+  CompromiseDto,
+  MarketAssessmentDto,
+  NearbyCityDto,
+} from '@rel/shared';
 import { LruCache } from '../lib/lruCache.js';
 import { assess, type PricedMarket } from './assessment/assess.js';
 import { ASSESSMENT_CONFIG } from './assessment/config.js';
 import type { CompromiseCandidate } from './assessment/compromises.js';
+import type { SnapshotCity } from './assessment/types.js';
+import { distanceKm } from './geo/itm.js';
 import { createDealMapper } from './marketQueries.js';
+import { resolveNeighborhood } from './search/placeSearch.js';
+import { searchKey } from './search/textMatch.js';
 
 export type AssessmentOutcome =
-  | { ok: true; assessment: MarketAssessmentDto }
-  | { ok: false; reason: 'unknown-city' | 'unknown-neighborhood' };
+  | { status: 'ok'; assessment: MarketAssessmentDto }
+  /** Nothing at all to show (no deals in the city and no nearby city with deals) → 204. */
+  | { status: 'no-content' }
+  | { status: 'not-found'; reason: 'unknown-city' | 'unknown-neighborhood' };
 
 const RESULTS_PER_SNAPSHOT = 500;
+const NEARBY_CITIES_WHEN_NO_DATA = 3;
 
 const METHODOLOGY = {
   minDealsForRate: ASSESSMENT_CONFIG.confidence.minPoolForRate,
@@ -32,10 +45,35 @@ function cacheKey(query: AssessmentQuery): string {
   );
 }
 
+/** The nearest cities that have deals, by official distance – offered when a city has none. */
+function nearestCitiesWithData(market: PricedMarket, origin: SnapshotCity): NearbyCityDto[] {
+  if (origin.location === null) {
+    return [];
+  }
+  const counts = new Map<string, number>();
+  for (const deal of market.deals) {
+    counts.set(deal.cityKey, (counts.get(deal.cityKey) ?? 0) + 1);
+  }
+  const from = origin.location;
+  return [...counts]
+    .flatMap(([key, dealCount]) => {
+      const city = market.cities.get(key);
+      if (city === undefined || city.location === null || city.key === origin.key) {
+        return [];
+      }
+      const km = Math.round(distanceKm(from, city.location) * 10) / 10;
+      return [{ id: city.id, name: city.nameHe, distanceKm: km, dealCount }];
+    })
+    .sort((a, b) => {
+      return a.distanceKm - b.distanceKm;
+    })
+    .slice(0, NEARBY_CITIES_WHEN_NO_DATA);
+}
+
 /**
- * Runs assessments for API requests: translates numeric ids to the engine's keys and shapes the
- * response. Results are cached per market snapshot (memory first); a reloaded snapshot starts
- * with an empty cache, so cached answers never outlive the data they came from.
+ * Runs assessments for API requests: translates numeric ids and free-text neighborhoods to the
+ * engine's keys, explains missing data with notices, and shapes the response. Results are
+ * cached per market snapshot (memory first); a reloaded snapshot starts with an empty cache.
  */
 export class MarketAssessmentService {
   private readonly cachesBySnapshot = new WeakMap<PricedMarket, LruCache<AssessmentOutcome>>();
@@ -61,17 +99,52 @@ export class MarketAssessmentService {
       return item.id === query.cityId;
     });
     if (city === undefined) {
-      return { ok: false, reason: 'unknown-city' };
+      return { status: 'not-found', reason: 'unknown-city' };
     }
+
+    const notices: AssessmentNoticeDto[] = [];
+    let nearbyCitiesWithData: NearbyCityDto[] = [];
+    const cityHasDeals = market.deals.some((deal) => {
+      return deal.cityKey === city.key;
+    });
+    if (!cityHasDeals) {
+      nearbyCitiesWithData = nearestCitiesWithData(market, city);
+      if (nearbyCitiesWithData.length === 0) {
+        return { status: 'no-content' };
+      }
+      notices.push({
+        code: 'CITY_NO_DATA',
+        message: `אין לנו עסקאות ב${city.nameHe}. אלה הערים הקרובות ביותר שיש לנו עליהן נתונים.`,
+      });
+    }
+
     let neighborhood: { id: number; name: string } | null = null;
     if (query.neighborhoodId !== undefined) {
       const found = market.neighborhoods.find((item) => {
         return item.id === query.neighborhoodId && item.cityKey === city.key;
       });
       if (found === undefined) {
-        return { ok: false, reason: 'unknown-neighborhood' };
+        return { status: 'not-found', reason: 'unknown-neighborhood' };
       }
       neighborhood = { id: found.id, name: found.name };
+    } else if (query.neighborhood !== undefined && cityHasDeals) {
+      const hit = resolveNeighborhood(market, city.key, query.neighborhood);
+      if (hit === null) {
+        notices.push({
+          code: 'NEIGHBORHOOD_NO_DATA',
+          message: `אין לנו עסקאות בשכונה "${query.neighborhood}". מוצגות תוצאות לכל ${city.nameHe}.`,
+        });
+      } else {
+        neighborhood = { id: hit.neighborhood.id, name: hit.neighborhood.name };
+        // Tell the user whenever the results are for a name other than what they typed
+        // (a typo, a partial name, or another spelling such as "Florentin").
+        if (searchKey(query.neighborhood) !== searchKey(hit.neighborhood.name)) {
+          notices.push({
+            code: 'NEIGHBORHOOD_MATCHED',
+            message: `מוצגות תוצאות עבור השכונה "${hit.neighborhood.name}".`,
+          });
+        }
+      }
     }
 
     const result = assess(market, {
@@ -94,10 +167,12 @@ export class MarketAssessmentService {
 
     const toDeal = createDealMapper(market);
     return {
-      ok: true,
+      status: 'ok',
       assessment: {
         city: { id: city.id, name: city.nameHe },
         neighborhood,
+        notices,
+        nearbyCitiesWithData,
         referencePeriod: result.referencePeriod,
         feasibility: result.feasibility,
         cityLevel: result.cityLevel,

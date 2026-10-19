@@ -41,6 +41,8 @@ export const assessmentQuerySchema = z
   .object({
     cityId: positiveInt,
     neighborhoodId: positiveInt.optional(),
+    /** Free text when the neighborhood is not picked from the list; never stored. */
+    neighborhood: z.string().trim().min(1).max(100).optional(),
     maxPrice: positiveInt,
     rooms: z.coerce.number().min(1).max(12).multipleOf(0.5).optional(),
     propertyType: commaList(propertyTypeSchema).optional(),
@@ -62,6 +64,12 @@ export const assessmentQuerySchema = z
       );
     },
     { message: 'קומה מינימלית גבוהה מהמקסימלית', path: ['minFloor'] },
+  )
+  .refine(
+    (query) => {
+      return query.neighborhoodId === undefined || query.neighborhood === undefined;
+    },
+    { message: 'יש לבחור שכונה מהרשימה או להקליד שם, לא את שניהם', path: ['neighborhood'] },
   );
 
 export type AssessmentQuery = z.infer<typeof assessmentQuerySchema>;
@@ -69,6 +77,7 @@ export type AssessmentQuery = z.infer<typeof assessmentQuerySchema>;
 export interface AssessmentRequest {
   cityId: number;
   neighborhoodId?: number;
+  neighborhood?: string;
   maxPrice: number;
   rooms?: number;
   propertyType?: readonly string[];
@@ -98,6 +107,9 @@ export function toAssessmentQueryString(request: AssessmentRequest): string {
     if (value !== undefined) {
       params.set(key, String(value));
     }
+  }
+  if (request.neighborhood !== undefined && request.neighborhood.trim().length > 0) {
+    params.set('neighborhood', request.neighborhood.trim());
   }
   if (request.propertyType !== undefined && request.propertyType.length > 0) {
     params.set('propertyType', request.propertyType.join(','));
@@ -189,9 +201,29 @@ export interface MethodologyDto {
   priceIndexSource: string;
 }
 
+export type AssessmentNoticeCode = 'CITY_NO_DATA' | 'NEIGHBORHOOD_NO_DATA' | 'NEIGHBORHOOD_MATCHED';
+
+/** Something the user should be told about the data behind the result. */
+export interface AssessmentNoticeDto {
+  code: AssessmentNoticeCode;
+  message: string;
+}
+
+export interface NearbyCityDto {
+  id: number;
+  name: string;
+  /** Straight-line distance from official CBS coordinates. */
+  distanceKm: number;
+  dealCount: number;
+}
+
 export interface MarketAssessmentDto {
   city: { id: number; name: string };
+  /** The neighborhood the results are for (null = the whole city). */
   neighborhood: { id: number; name: string } | null;
+  notices: AssessmentNoticeDto[];
+  /** Filled when the city has no deals: the nearest cities that do. */
+  nearbyCitiesWithData: NearbyCityDto[];
   /** CBS index month that adjusted prices are expressed in (YYYY-MM-01), or null. */
   referencePeriod: string | null;
   feasibility: FeasibilityDto;

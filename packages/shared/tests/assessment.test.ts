@@ -60,10 +60,11 @@ describe('toAssessmentQueryString', () => {
     });
   });
 
-  it('keeps the longest possible request far below the URL limit', () => {
+  it('keeps the longest possible request (100-letter Hebrew neighborhood) below the URL limit', () => {
     const longest = toAssessmentQueryString({
       cityId: 2_147_483_647,
-      neighborhoodId: 2_147_483_647,
+      // Free text is the longest form: every Hebrew letter becomes 6 characters when encoded.
+      neighborhood: 'ש'.repeat(100),
       maxPrice: 2_147_483_647,
       rooms: 11.5,
       propertyType: Object.keys(PROPERTY_TYPES),
@@ -80,7 +81,22 @@ describe('toAssessmentQueryString', () => {
     });
     const url = `/api/v1/market-assessments?${longest}`;
 
-    expect(url.length).toBeLessThan(500);
+    expect(url.length).toBeLessThan(1200);
     expect(url.length).toBeLessThan(MAX_URL_LENGTH);
+  });
+});
+
+describe('free-text neighborhood', () => {
+  it('is accepted on its own but not together with a neighborhood id', () => {
+    expect(
+      parse(
+        'cityId=1&maxPrice=3000000&neighborhood=%D7%A4%D7%9C%D7%95%D7%A8%D7%A0%D7%98%D7%99%D7%9F',
+      ).success,
+    ).toBe(true);
+    expect(parse('cityId=1&maxPrice=3000000&neighborhood=x&neighborhoodId=4').success).toBe(false);
+  });
+
+  it('rejects text longer than 100 characters', () => {
+    expect(parse(`cityId=1&maxPrice=3000000&neighborhood=${'a'.repeat(101)}`).success).toBe(false);
   });
 });
