@@ -34,6 +34,17 @@ const timestamps = {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 };
 
+/** Users are added manually (no sign-up). Passwords are stored only as an Argon2 hash. */
+export const users = pgTable('users', {
+  id: serial('id').primaryKey(),
+  /** Stored lower-cased and trimmed. */
+  email: text('email').notNull().unique(),
+  passwordHash: text('password_hash').notNull(),
+  isActive: boolean('is_active').notNull().default(true),
+  lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
+  ...timestamps,
+});
+
 export const cities = pgTable('cities', {
   id: serial('id').primaryKey(),
   key: text('key').notNull().unique(),

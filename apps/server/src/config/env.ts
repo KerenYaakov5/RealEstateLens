@@ -11,15 +11,42 @@ const optionalString = <T extends z.ZodType>(schema: T) => {
   }, schema.optional());
 };
 
-const envSchema = z.object({
-  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-  PORT: z.coerce.number().int().positive().default(3000),
-  LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
-  // When DATABASE_URL is missing, the server uses an embedded PGlite database (development/tests).
-  DATABASE_URL: optionalString(z.url()),
-  PGLITE_DATA_DIR: z.string().default(path.join(serverRoot, '.pglite')),
-  SEED_FILE_PATH: z.string().default(path.join(serverRoot, 'data', 'madlan-sample.xlsx')),
-});
+// Used only outside production so local development works without configuration.
+const DEV_ONLY_JWT_SECRET = 'dev-only-secret-not-for-production-use-0123456789';
+
+const envSchema = z
+  .object({
+    NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+    PORT: z.coerce.number().int().positive().default(3000),
+    LOG_LEVEL: z
+      .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
+      .default('info'),
+    // When DATABASE_URL is missing, the server uses an embedded PGlite database (development/tests).
+    DATABASE_URL: optionalString(z.url()),
+    PGLITE_DATA_DIR: z.string().default(path.join(serverRoot, '.pglite')),
+    SEED_FILE_PATH: z.string().default(path.join(serverRoot, 'data', 'madlan-sample.xlsx')),
+
+    // Sessions
+    JWT_SECRET: optionalString(z.string().min(32)),
+    SESSION_TTL_HOURS: z.coerce.number().int().positive().default(168),
+
+    // Rate limits (tunable without a deploy)
+    RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(120),
+    LOGIN_MAX_ATTEMPTS: z.coerce.number().int().positive().default(5),
+    LOGIN_WINDOW_MINUTES: z.coerce.number().int().positive().default(15),
+  })
+  .superRefine((value, ctx) => {
+    if (value.NODE_ENV === 'production' && value.JWT_SECRET === undefined) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['JWT_SECRET'],
+        message: 'required in production (at least 32 characters)',
+      });
+    }
+  })
+  .transform((value) => {
+    return { ...value, JWT_SECRET: value.JWT_SECRET ?? DEV_ONLY_JWT_SECRET };
+  });
 
 export type Env = z.infer<typeof envSchema>;
 

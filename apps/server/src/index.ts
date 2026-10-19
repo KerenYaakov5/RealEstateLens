@@ -10,6 +10,8 @@ import { logger } from './lib/logger.js';
 import { CityRepository } from './repositories/city.repository.js';
 import { DealRepository } from './repositories/deal.repository.js';
 import { PriceIndexRepository } from './repositories/priceIndex.repository.js';
+import { UserRepository } from './repositories/user.repository.js';
+import { AuthService } from './services/auth.service.js';
 import { LocalityService } from './services/locality.service.js';
 import { PriceIndexService } from './services/priceIndex.service.js';
 
@@ -48,7 +50,17 @@ async function start(): Promise<void> {
       : { year: Number(earliestDeal.slice(0, 4)), month: Number(earliestDeal.slice(5, 7)) },
   );
 
-  const app = createApp();
+  const isProduction = env.NODE_ENV === 'production';
+  const app = createApp({
+    auth: new AuthService(new UserRepository(database.db), env.JWT_SECRET, env.SESSION_TTL_HOURS),
+    options: {
+      secureCookies: isProduction,
+      trustProxy: isProduction,
+      rateLimitPerMinute: env.RATE_LIMIT_PER_MINUTE,
+      loginMaxAttempts: env.LOGIN_MAX_ATTEMPTS,
+      loginWindowMinutes: env.LOGIN_WINDOW_MINUTES,
+    },
+  });
   const server = app.listen(env.PORT, () => {
     logger.info({ port: env.PORT, env: env.NODE_ENV }, 'RealEstateLens server listening');
   });
