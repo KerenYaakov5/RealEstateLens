@@ -8,7 +8,6 @@ import {
   pgEnum,
   pgTable,
   primaryKey,
-  serial,
   text,
   timestamp,
   uniqueIndex,
@@ -36,7 +35,7 @@ const timestamps = {
 
 /** Users are added manually (no sign-up). Passwords are stored only as an Argon2 hash. */
 export const users = pgTable('users', {
-  id: serial('id').primaryKey(),
+  id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
   /** Stored lower-cased and trimmed. */
   email: text('email').notNull().unique(),
   passwordHash: text('password_hash').notNull(),
@@ -46,7 +45,7 @@ export const users = pgTable('users', {
 });
 
 export const cities = pgTable('cities', {
-  id: serial('id').primaryKey(),
+  id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
   key: text('key').notNull().unique(),
   nameHe: text('name_he').notNull(),
   nameEn: text('name_en').notNull(),
@@ -61,7 +60,7 @@ export const cities = pgTable('cities', {
 });
 
 export const cityAliases = pgTable('city_aliases', {
-  id: serial('id').primaryKey(),
+  id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
   cityId: integer('city_id')
     .notNull()
     .references(() => cities.id, { onDelete: 'cascade' }),
@@ -72,7 +71,7 @@ export const cityAliases = pgTable('city_aliases', {
 export const neighborhoods = pgTable(
   'neighborhoods',
   {
-    id: serial('id').primaryKey(),
+    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
     cityId: integer('city_id')
       .notNull()
       .references(() => cities.id, { onDelete: 'cascade' }),
@@ -84,7 +83,7 @@ export const neighborhoods = pgTable(
 export const deals = pgTable(
   'deals',
   {
-    id: serial('id').primaryKey(),
+    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
     dealId: text('deal_id').notNull().unique(),
     cityId: integer('city_id')
       .notNull()
@@ -118,7 +117,7 @@ export const deals = pgTable(
 );
 
 export const importRuns = pgTable('import_runs', {
-  id: serial('id').primaryKey(),
+  id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
   sourceFile: text('source_file').notNull(),
   startedAt: timestamp('started_at', { withTimezone: true }).notNull().defaultNow(),
   finishedAt: timestamp('finished_at', { withTimezone: true }),
@@ -149,7 +148,7 @@ export const priceIndex = pgTable(
 export const importIssues = pgTable(
   'import_issues',
   {
-    id: serial('id').primaryKey(),
+    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
     runId: integer('run_id')
       .notNull()
       .references(() => importRuns.id, { onDelete: 'cascade' }),
