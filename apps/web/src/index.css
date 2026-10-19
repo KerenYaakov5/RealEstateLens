@@ -1,0 +1,63 @@
+@import 'tailwindcss';
+
+/* Design tokens. Colors are named by role so components never hard-code a hue. */
+@theme {
+  --font-sans: 'Heebo', ui-sans-serif, system-ui, sans-serif;
+
+  --color-ink: #13282e;
+  --color-ink-soft: #3d555c;
+  --color-muted: #6b7f84;
+
+  --color-canvas: #f6f3ee;
+  --color-surface: #ffffff;
+  --color-sand: #ece5da;
+  --color-line: #ddd5c8;
+
+  --color-brand: #0f6b6f;
+  --color-brand-strong: #0a5155;
+  --color-brand-soft: #d8ecea;
+
+  --color-compromise: #e2725b;
+  --color-compromise-soft: #fbe5df;
+
+  --color-good: #2e8b57;
+  --color-good-soft: #dff1e6;
+  --color-warn: #c98a1b;
+  --color-warn-soft: #f8ecd2;
+  --color-bad: #b4413a;
+  --color-bad-soft: #f6dedc;
+
+  --radius-card: 1.25rem;
+  --shadow-card: 0 1px 2px rgb(19 40 46 / 0.06), 0 8px 24px rgb(19 40 46 / 0.06);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-canvas font-sans text-ink antialiased;
+  }
+
+  /* Numbers (prices, percentages) stay left-to-right inside Hebrew text. */
+  .num {
+    direction: ltr;
+    unicode-bidi: isolate;
+    font-variant-numeric: tabular-nums;
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--color-brand);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}

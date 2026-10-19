@@ -3,6 +3,7 @@ import tseslint from 'typescript-eslint';
 import prettier from 'eslint-config-prettier';
 import globals from 'globals';
 import stylistic from '@stylistic/eslint-plugin';
+import reactHooks from 'eslint-plugin-react-hooks';
 
 export default tseslint.config(
   {
@@ -28,6 +29,17 @@ export default tseslint.config(
         'error',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_', ignoreRestSiblings: true },
       ],
+    },
+  },
+  {
+    // The web client runs in the browser and follows React's rules of hooks.
+    files: ['apps/web/**/*.{ts,tsx}'],
+    plugins: { 'react-hooks': reactHooks },
+    languageOptions: {
+      globals: { ...globals.browser },
+    },
+    rules: {
+      ...reactHooks.configs.recommended.rules,
     },
   },
 );
