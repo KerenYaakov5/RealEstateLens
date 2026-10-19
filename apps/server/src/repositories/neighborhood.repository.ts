@@ -7,7 +7,8 @@ export interface NeighborhoodKey {
   name: string;
 }
 
-export function neighborhoodLookupKey(key: NeighborhoodKey): string {
+/** Keys a neighborhood row by DB city id + name (the in-memory equivalent is neighborhoodKey). */
+export function neighborhoodRowKey(key: NeighborhoodKey): string {
   return `${key.cityId}|${key.name}`;
 }
 
@@ -19,7 +20,7 @@ export class NeighborhoodRepository {
     const unique = [
       ...new Map(
         keys.map((key) => {
-          return [neighborhoodLookupKey(key), key] as const;
+          return [neighborhoodRowKey(key), key] as const;
         }),
       ).values(),
     ];
@@ -43,7 +44,7 @@ export class NeighborhoodRepository {
 
     return new Map(
       rows.map((row) => {
-        return [neighborhoodLookupKey(row), row.id] as const;
+        return [neighborhoodRowKey(row), row.id] as const;
       }),
     );
   }

@@ -31,7 +31,7 @@ export interface CompromiseCandidate {
   facts: Fact[];
 }
 
-interface Context {
+interface CompromiseContext {
   deals: readonly PricedDeal[];
   market: PricedMarket;
   criteria: MarketCriteria;
@@ -44,7 +44,7 @@ function withoutBudget(criteria: MarketCriteria): PoolCriteria {
 }
 
 function makeCandidate(
-  context: Context,
+  context: CompromiseContext,
   id: string,
   type: CompromiseType,
   params: CompromiseCandidate['params'],
@@ -73,11 +73,15 @@ function makeCandidate(
   return { id, type, params, feasibility, delta, facts };
 }
 
-function evaluate(context: Context, criteria: PoolCriteria, maxPrice: number): Feasibility {
+function feasibilityFor(
+  context: CompromiseContext,
+  criteria: PoolCriteria,
+  maxPrice: number,
+): Feasibility {
   return computeFeasibility(buildPool(context.deals, criteria), maxPrice);
 }
 
-function dropFeatureCandidates(context: Context): CompromiseCandidate[] {
+function dropFeatureCandidates(context: CompromiseContext): CompromiseCandidate[] {
   const base = withoutBudget(context.criteria);
   return FEATURES.filter((feature) => {
     return context.criteria.features[feature] === 'required';
@@ -88,13 +92,13 @@ function dropFeatureCandidates(context: Context): CompromiseCandidate[] {
       `dropFeature:${feature}`,
       'dropFeature',
       { feature },
-      evaluate(context, relaxed, context.criteria.maxPrice),
+      feasibilityFor(context, relaxed, context.criteria.maxPrice),
     );
     return candidate === null ? [] : [candidate];
   });
 }
 
-function fewerRoomsCandidate(context: Context): CompromiseCandidate[] {
+function fewerRoomsCandidate(context: CompromiseContext): CompromiseCandidate[] {
   const rooms = context.criteria.rooms;
   if (rooms === undefined || rooms - 1 < 1) {
     return [];
@@ -105,12 +109,12 @@ function fewerRoomsCandidate(context: Context): CompromiseCandidate[] {
     'fewerRooms',
     'fewerRooms',
     { rooms: rooms - 1 },
-    evaluate(context, relaxed, context.criteria.maxPrice),
+    feasibilityFor(context, relaxed, context.criteria.maxPrice),
   );
   return candidate === null ? [] : [candidate];
 }
 
-function neighborhoodCandidates(context: Context): CompromiseCandidate[] {
+function neighborhoodCandidates(context: CompromiseContext): CompromiseCandidate[] {
   const chosen = context.criteria.neighborhood;
   if (chosen === undefined) {
     return [];
@@ -123,7 +127,7 @@ function neighborhoodCandidates(context: Context): CompromiseCandidate[] {
     'anyNeighborhood',
     'anyNeighborhood',
     {},
-    evaluate(context, cityWide, context.criteria.maxPrice),
+    feasibilityFor(context, cityWide, context.criteria.maxPrice),
   );
   if (anywhere !== null) {
     results.push(anywhere);
@@ -147,7 +151,7 @@ function neighborhoodCandidates(context: Context): CompromiseCandidate[] {
       `otherNeighborhood:${neighborhood}`,
       'otherNeighborhood',
       { neighborhood },
-      evaluate(context, { ...cityWide, neighborhood }, context.criteria.maxPrice),
+      feasibilityFor(context, { ...cityWide, neighborhood }, context.criteria.maxPrice),
     );
     if (candidate !== null && (best === null || candidate.delta > best.delta)) {
       best = candidate;
@@ -159,7 +163,7 @@ function neighborhoodCandidates(context: Context): CompromiseCandidate[] {
   return results;
 }
 
-function nearbyCityCandidates(context: Context): CompromiseCandidate[] {
+function nearbyCityCandidates(context: CompromiseContext): CompromiseCandidate[] {
   const origin = context.market.cities.get(context.criteria.cityKey)?.location;
   if (origin === undefined || origin === null) {
     return [];
@@ -180,7 +184,7 @@ function nearbyCityCandidates(context: Context): CompromiseCandidate[] {
       `nearbyCity:${city.key}`,
       'nearbyCity',
       { cityKey: city.key, cityName: city.nameHe, distanceKm: Math.round(km * 10) / 10 },
-      evaluate(context, { ...rest, cityKey: city.key }, context.criteria.maxPrice),
+      feasibilityFor(context, { ...rest, cityKey: city.key }, context.criteria.maxPrice),
     );
     return candidate === null ? [] : [candidate];
   });
@@ -190,7 +194,7 @@ function nearbyCityCandidates(context: Context): CompromiseCandidate[] {
  * The budget at which half of the pool becomes affordable – a price that was actually paid.
  * Not offered when that budget is beyond a realistic stretch (maxBudgetRatio × budget).
  */
-function raiseBudgetCandidate(context: Context): CompromiseCandidate[] {
+function raiseBudgetCandidate(context: CompromiseContext): CompromiseCandidate[] {
   const criteria = withoutBudget(context.criteria);
   const pool = buildPool(context.deals, criteria);
   const target = nearestRank(
@@ -230,7 +234,7 @@ export function findCompromises(
   criteria: MarketCriteria,
   baseline: Feasibility,
 ): CompromiseCandidate[] {
-  const context: Context = { deals: market.deals, market, criteria, baseline };
+  const context: CompromiseContext = { deals: market.deals, market, criteria, baseline };
   return [
     ...dropFeatureCandidates(context),
     ...fewerRoomsCandidate(context),

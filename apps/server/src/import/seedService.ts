@@ -11,7 +11,7 @@ import {
 } from '../repositories/importRun.repository.js';
 import {
   NeighborhoodRepository,
-  neighborhoodLookupKey,
+  neighborhoodRowKey,
 } from '../repositories/neighborhood.repository.js';
 import { dedupeDeals } from './dedupe.js';
 import { readSpreadsheet } from './excelReader.js';
@@ -104,8 +104,7 @@ export async function seedDeals(options: SeedOptions): Promise<SeedResult> {
       const neighborhoodId =
         deal.neighborhood === null
           ? null
-          : (neighborhoodIds.get(neighborhoodLookupKey({ cityId, name: deal.neighborhood })) ??
-            null);
+          : (neighborhoodIds.get(neighborhoodRowKey({ cityId, name: deal.neighborhood })) ?? null);
       return {
         dealId: deal.dealId,
         cityId,
