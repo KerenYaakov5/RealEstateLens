@@ -11,12 +11,14 @@ import {
   type TypicalForBudget,
 } from './insights.js';
 import { buildPool, type PoolCriteria } from './pool.js';
-import type { PricedDeal, SnapshotCity } from './types.js';
+import type { PricedDeal, SnapshotCity, SnapshotNeighborhood } from './types.js';
 
 /** Deals already priced in today's terms, plus the cities – what `assess` works on. */
 export interface PricedMarket {
   deals: readonly PricedDeal[];
+  /** Keyed by city key (the engine's identifier). */
   cities: ReadonlyMap<string, SnapshotCity>;
+  neighborhoods: readonly SnapshotNeighborhood[];
   /** The CBS index month prices are expressed in (YYYY-MM-01), or null. */
   referencePeriod: string | null;
 }

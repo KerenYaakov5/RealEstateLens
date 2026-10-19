@@ -2,15 +2,18 @@ import { randomUUID } from 'node:crypto';
 import cookieParser from 'cookie-parser';
 import express, { Router, type Express } from 'express';
 import { pinoHttp } from 'pino-http';
+import { MarketController } from './controllers/market.controller.js';
 import { SessionController } from './controllers/session.controller.js';
 import { logger } from './lib/logger.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { apiRateLimit, loginRateLimit } from './middleware/rateLimits.js';
 import { requireAuth } from './middleware/requireAuth.js';
 import { createHealthRouter } from './routes/health.routes.js';
+import { createCityRouter, createDealRouter } from './routes/market.routes.js';
 import { createSessionRouter } from './routes/session.routes.js';
 import { createUserRouter } from './routes/user.routes.js';
 import type { AuthService } from './services/auth.service.js';
+import type { MarketDataService } from './services/marketData.service.js';
 
 export interface AppOptions {
   secureCookies: boolean;
@@ -23,6 +26,7 @@ export interface AppOptions {
 
 export interface AppDeps {
   auth: AuthService;
+  marketData: MarketDataService;
   options: AppOptions;
 }
 
@@ -62,6 +66,9 @@ export function createApp(deps: AppDeps): Express {
   // Everything below requires a logged-in user
   api.use(requireAuth(deps.auth), apiRateLimit(deps.options.rateLimitPerMinute));
   api.use('/users', createUserRouter());
+  const market = new MarketController(deps.marketData);
+  api.use('/cities', createCityRouter(market));
+  api.use('/deals', createDealRouter(market));
 
   app.use('/api/v1', api);
   app.use('/api', notFoundHandler);

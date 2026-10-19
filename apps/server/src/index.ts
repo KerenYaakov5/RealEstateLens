@@ -9,10 +9,12 @@ import { ensureSeeded } from './import/seedService.js';
 import { logger } from './lib/logger.js';
 import { CityRepository } from './repositories/city.repository.js';
 import { DealRepository } from './repositories/deal.repository.js';
+import { NeighborhoodRepository } from './repositories/neighborhood.repository.js';
 import { PriceIndexRepository } from './repositories/priceIndex.repository.js';
 import { UserRepository } from './repositories/user.repository.js';
 import { AuthService } from './services/auth.service.js';
 import { LocalityService } from './services/locality.service.js';
+import { MarketDataService } from './services/marketData.service.js';
 import { PriceIndexService } from './services/priceIndex.service.js';
 
 const database = createDatabase({
@@ -50,9 +52,22 @@ async function start(): Promise<void> {
       : { year: Number(earliestDeal.slice(0, 4)), month: Number(earliestDeal.slice(5, 7)) },
   );
 
+  // Load the market into memory before accepting traffic, so the first request is fast.
+  const marketData = new MarketDataService(
+    {
+      deals: new DealRepository(database.db),
+      cities: cityRepository,
+      neighborhoods: new NeighborhoodRepository(database.db),
+      priceIndex: new PriceIndexRepository(database.db),
+    },
+    logger,
+  );
+  await marketData.getMarket();
+
   const isProduction = env.NODE_ENV === 'production';
   const app = createApp({
     auth: new AuthService(new UserRepository(database.db), env.JWT_SECRET, env.SESSION_TTL_HOURS),
+    marketData,
     options: {
       secureCookies: isProduction,
       trustProxy: isProduction,

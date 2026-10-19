@@ -1,6 +1,6 @@
-import { inArray } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import type { Database } from '../db/client.js';
-import { neighborhoods } from '../db/schema.js';
+import { cities, neighborhoods } from '../db/schema.js';
 
 export interface NeighborhoodKey {
   cityId: number;
@@ -46,5 +46,13 @@ export class NeighborhoodRepository {
         return [neighborhoodLookupKey(row), row.id] as const;
       }),
     );
+  }
+
+  /** Every neighborhood with its city key – for the in-memory snapshot. */
+  async findAll() {
+    return this.db
+      .select({ id: neighborhoods.id, cityKey: cities.key, name: neighborhoods.name })
+      .from(neighborhoods)
+      .innerJoin(cities, eq(neighborhoods.cityId, cities.id));
   }
 }

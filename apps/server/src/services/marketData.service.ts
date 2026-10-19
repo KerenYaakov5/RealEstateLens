@@ -3,6 +3,7 @@ import type { Logger } from '../lib/logger.js';
 import { MemoryCache } from '../lib/memoryCache.js';
 import type { CityRepository } from '../repositories/city.repository.js';
 import type { DealRepository } from '../repositories/deal.repository.js';
+import type { NeighborhoodRepository } from '../repositories/neighborhood.repository.js';
 import type { PriceIndexRepository } from '../repositories/priceIndex.repository.js';
 import type { PricedMarket } from './assessment/assess.js';
 import { createPriceAdjuster } from './assessment/priceAdjuster.js';
@@ -22,6 +23,7 @@ export class MarketDataService {
     private readonly repositories: {
       deals: DealRepository;
       cities: CityRepository;
+      neighborhoods: NeighborhoodRepository;
       priceIndex: PriceIndexRepository;
     },
     private readonly logger: Logger,
@@ -47,9 +49,10 @@ export class MarketDataService {
 
   private async load(): Promise<PricedMarket> {
     const startedAt = Date.now();
-    const [dealRows, cityRows, indexRows] = await Promise.all([
+    const [dealRows, cityRows, neighborhoodRows, indexRows] = await Promise.all([
       this.repositories.deals.findAllForSnapshot(),
       this.repositories.cities.findAll(),
+      this.repositories.neighborhoods.findAll(),
       this.repositories.priceIndex.findSeries(DWELLING_PRICES_SERIES),
     ]);
 
@@ -60,6 +63,7 @@ export class MarketDataService {
     );
     const deals = dealRows.map((row) => {
       const deal: SnapshotDeal = {
+        id: row.id,
         dealId: row.dealId,
         cityKey: row.cityKey,
         neighborhood: row.neighborhood,
@@ -87,7 +91,10 @@ export class MarketDataService {
       cityRows.map((row): [string, SnapshotCity] => {
         const location =
           row.itmX !== null && row.itmY !== null ? { x: row.itmX, y: row.itmY } : null;
-        return [row.key, { key: row.key, nameHe: row.nameHe, location }];
+        return [
+          row.key,
+          { id: row.id, key: row.key, nameHe: row.nameHe, nameEn: row.nameEn, location },
+        ];
       }),
     );
 
@@ -100,6 +107,11 @@ export class MarketDataService {
       },
       'Market snapshot loaded into memory',
     );
-    return { deals, cities, referencePeriod: adjuster.referencePeriod };
+    return {
+      deals,
+      cities,
+      neighborhoods: neighborhoodRows,
+      referencePeriod: adjuster.referencePeriod,
+    };
   }
 }

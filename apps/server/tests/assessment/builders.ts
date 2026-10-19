@@ -7,6 +7,7 @@ let counter = 0;
 export function makeDeal(overrides: Partial<SnapshotDeal> = {}): SnapshotDeal {
   counter++;
   return {
+    id: counter,
     dealId: `T${counter}`,
     cityKey: 'holon',
     neighborhood: 'מרכז',

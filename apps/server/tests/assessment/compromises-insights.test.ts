@@ -19,10 +19,34 @@ const NO_SAFE_ROOM = { safeRoom: false, elevator: true, parking: true, balcony: 
 
 // Official CBS coordinates (ITM meters) for the cities used here.
 const CITIES = new Map<string, SnapshotCity>([
-  ['holon', { key: 'holon', nameHe: 'חולון', location: { x: 179253, y: 658225 } }],
-  ['bat-yam', { key: 'bat-yam', nameHe: 'בת ים', location: { x: 176515, y: 658597 } }],
-  ['beer-sheva', { key: 'beer-sheva', nameHe: 'באר שבע', location: { x: 179500, y: 573657 } }],
-  ['no-coords', { key: 'no-coords', nameHe: 'ללא מיקום', location: null }],
+  [
+    'holon',
+    { id: 1, key: 'holon', nameHe: 'חולון', nameEn: 'Holon', location: { x: 179253, y: 658225 } },
+  ],
+  [
+    'bat-yam',
+    {
+      id: 2,
+      key: 'bat-yam',
+      nameHe: 'בת ים',
+      nameEn: 'Bat Yam',
+      location: { x: 176515, y: 658597 },
+    },
+  ],
+  [
+    'beer-sheva',
+    {
+      id: 3,
+      key: 'beer-sheva',
+      nameHe: 'באר שבע',
+      nameEn: "Be'er Sheva",
+      location: { x: 179500, y: 573657 },
+    },
+  ],
+  [
+    'no-coords',
+    { id: 4, key: 'no-coords', nameHe: 'ללא מיקום', nameEn: 'No location', location: null },
+  ],
 ]);
 
 function compromisesFor(deals: PricedDeal[], wanted = criteria()) {
@@ -220,6 +244,7 @@ describe('assess', () => {
   const market: PricedMarket = {
     deals: times(6, (i) => makePriced({ priceNis: 1_500_000 + i * 200_000 })),
     cities: CITIES,
+    neighborhoods: [],
     referencePeriod: '2026-07-01',
   };
 

@@ -8,6 +8,7 @@ import { seedDeals } from '../../src/import/seedService.js';
 import { logger } from '../../src/lib/logger.js';
 import { CityRepository } from '../../src/repositories/city.repository.js';
 import { DealRepository } from '../../src/repositories/deal.repository.js';
+import { NeighborhoodRepository } from '../../src/repositories/neighborhood.repository.js';
 import { PriceIndexRepository } from '../../src/repositories/priceIndex.repository.js';
 import { assess, type PricedMarket } from '../../src/services/assessment/assess.js';
 import { ASSESSMENT_CONFIG } from '../../src/services/assessment/config.js';
@@ -47,7 +48,12 @@ beforeAll(async () => {
   );
   dealRepository = new DealRepository(handle.db);
   marketData = new MarketDataService(
-    { deals: dealRepository, cities: cityRepository, priceIndex },
+    {
+      deals: dealRepository,
+      cities: cityRepository,
+      neighborhoods: new NeighborhoodRepository(handle.db),
+      priceIndex,
+    },
     logger,
   );
   market = await marketData.getMarket();

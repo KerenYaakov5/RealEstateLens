@@ -73,7 +73,14 @@ export class CityRepository {
 
   async findAll() {
     return this.db
-      .select({ key: cities.key, nameHe: cities.nameHe, itmX: cities.itmX, itmY: cities.itmY })
+      .select({
+        id: cities.id,
+        key: cities.key,
+        nameHe: cities.nameHe,
+        nameEn: cities.nameEn,
+        itmX: cities.itmX,
+        itmY: cities.itmY,
+      })
       .from(cities);
   }
 

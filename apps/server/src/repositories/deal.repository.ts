@@ -42,6 +42,7 @@ export class DealRepository {
   async findAllForSnapshot() {
     return this.db
       .select({
+        id: deals.id,
         dealId: deals.dealId,
         cityKey: cities.key,
         neighborhood: neighborhoods.name,

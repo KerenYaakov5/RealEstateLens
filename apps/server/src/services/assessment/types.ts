@@ -3,6 +3,9 @@ import type { ItmPoint } from '../geo/itm.js';
 
 /** A deal as held in memory by the assessment engine. */
 export interface SnapshotDeal {
+  /** Database id (exposed in the API). */
+  id: number;
+  /** Identifier from the source file, e.g. "D100350". */
   dealId: string;
   cityKey: string;
   neighborhood: string | null;
@@ -22,10 +25,19 @@ export interface SnapshotDeal {
 }
 
 export interface SnapshotCity {
+  /** Database id (exposed in the API); the engine works with `key`. */
+  id: number;
   key: string;
   nameHe: string;
+  nameEn: string;
   /** Official coordinates (CBS), or null – a city without them is never "nearby". */
   location: ItmPoint | null;
+}
+
+export interface SnapshotNeighborhood {
+  id: number;
+  cityKey: string;
+  name: string;
 }
 
 export interface IndexPointInput {
