@@ -17,7 +17,7 @@ export function normalizeEnum<T extends Record<string, string>>(
     }
     return ok(null);
   }
-  const text = cleanText(typeof raw === 'string' ? raw : String(raw)) ?? '';
+  const text = cleanText(raw) ?? '';
   const key = toMatchKey(text);
   for (const [enumKey, hebrewLabel] of Object.entries(record)) {
     if (toMatchKey(hebrewLabel) === key || enumKey.toLowerCase() === key.replace(/ /g, '')) {

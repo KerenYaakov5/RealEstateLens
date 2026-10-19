@@ -21,7 +21,7 @@ export function normalizeBoolean(raw: RawCell): FieldResult<boolean | null> {
     }
     return fail(`ערך בוליאני לא מוכר: ${raw}`);
   }
-  const text = cleanText(raw instanceof Date ? raw.toISOString() : raw)?.toLowerCase() ?? '';
+  const text = cleanText(raw)?.toLowerCase() ?? '';
   if (TRUE_VALUES.has(text)) {
     return ok(true);
   }

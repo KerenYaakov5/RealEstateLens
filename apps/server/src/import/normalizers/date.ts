@@ -38,7 +38,7 @@ function parse(raw: RawCell): string | undefined {
   if (typeof raw === 'number') {
     return fromExcelSerial(raw);
   }
-  const text = cleanText(typeof raw === 'string' ? raw : String(raw)) ?? '';
+  const text = cleanText(raw) ?? '';
   if (/^\d+(\.\d+)?$/.test(text)) {
     return fromExcelSerial(Number(text));
   }

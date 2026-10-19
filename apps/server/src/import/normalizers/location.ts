@@ -1,4 +1,4 @@
-import { LATIN_TOKEN_TRANSLATIONS, type CityReference } from '../../data/cities.js';
+import { translateLatinTokens, type CityReference } from '../../data/cities.js';
 import { similarity } from './levenshtein.js';
 import { cleanText, toMatchKey } from './text.js';
 import { fail, isBlank, ok, type FieldResult, type RawCell } from './result.js';
@@ -73,15 +73,6 @@ export class CityMatcher {
     }
     return best?.cityKey;
   }
-}
-
-function translateLatinTokens(key: string): string {
-  return key
-    .split(' ')
-    .map((token) => {
-      return LATIN_TOKEN_TRANSLATIONS[token] ?? token;
-    })
-    .join(' ');
 }
 
 /** Neighborhood spellings that cleaning alone cannot unify, keyed by match key. */

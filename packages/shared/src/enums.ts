@@ -39,17 +39,3 @@ function keysOf<T extends Record<string, string>>(
 export const propertyTypeSchema = z.enum(keysOf(PROPERTY_TYPES));
 export const propertyConditionSchema = z.enum(keysOf(PROPERTY_CONDITIONS));
 export const dealSourceSchema = z.enum(keysOf(DEAL_SOURCES));
-
-/** Reverse lookup: Hebrew label → key. Returns undefined for unknown labels. */
-export function keyByLabel<T extends Record<string, string>>(
-  record: T,
-  label: string,
-): (keyof T & string) | undefined {
-  const entry = Object.entries(record).find(([, value]) => {
-    return value === label;
-  });
-  if (entry === undefined) {
-    return undefined;
-  }
-  return entry[0] as keyof T & string;
-}

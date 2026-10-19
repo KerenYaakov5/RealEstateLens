@@ -1,8 +1,7 @@
-import { LATIN_TOKEN_TRANSLATIONS } from '../../data/cities.js';
+import type { MatchKind } from '@rel/shared';
+import { translateLatinTokens } from '../../data/cities.js';
 import { maxSimilarity, similarity } from '../../import/normalizers/levenshtein.js';
 import { cleanText, toMatchKey } from '../../import/normalizers/text.js';
-
-export type MatchKind = 'exact' | 'prefix' | 'word' | 'contains' | 'fuzzy';
 
 export interface TextMatch {
   kind: MatchKind;
@@ -34,12 +33,7 @@ export function searchKey(text: string): string {
   const key = toMatchKey(cleanText(text) ?? '').replace(/[ךםןףץ]/g, (letter) => {
     return FINAL_LETTERS[letter] ?? letter;
   });
-  return key
-    .split(' ')
-    .map((token) => {
-      return LATIN_TOKEN_TRANSLATIONS[token] ?? token;
-    })
-    .join(' ');
+  return translateLatinTokens(key);
 }
 
 /**

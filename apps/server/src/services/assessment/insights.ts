@@ -1,23 +1,26 @@
-import { FEATURES, type Feature, type FeaturePreference, type MarketCriteria } from '@rel/shared';
+import {
+  FEATURES,
+  type Feature,
+  type FeaturePreference,
+  type HousePartName,
+  type HousePartStatus,
+  type MarketCriteria,
+  type ValueRangeDto,
+} from '@rel/shared';
 import { ASSESSMENT_CONFIG } from './config.js';
 import { computeFeasibility } from './feasibility.js';
 import { buildPool, type PoolCriteria } from './pool.js';
 import { nearestRank, sortedNumbers } from './stats.js';
 import type { PricedDeal } from './types.js';
 
-export interface ValueRange {
-  low: number;
-  high: number;
-}
-
 /** "For your budget in this city, most deals were …" – null when there are too few deals. */
 export interface TypicalForBudget {
   dealCount: number;
-  rooms: ValueRange;
-  sizeSqm: ValueRange | null;
+  rooms: ValueRangeDto;
+  sizeSqm: ValueRangeDto | null;
 }
 
-function range(values: readonly number[]): ValueRange | null {
+function range(values: readonly number[]): ValueRangeDto | null {
   if (values.length < ASSESSMENT_CONFIG.typicalRange.minDeals) {
     return null;
   }
@@ -88,9 +91,6 @@ export function referenceDeals(
     })
     .slice(0, ASSESSMENT_CONFIG.maxReferenceDeals);
 }
-
-export type HousePartName = 'structure' | Feature;
-export type HousePartStatus = 'full' | 'partial' | 'missing' | 'unknown';
 
 export interface HousePart {
   part: HousePartName;

@@ -1,7 +1,6 @@
+import type { Confidence } from '@rel/shared';
 import { ASSESSMENT_CONFIG } from './config.js';
 import type { ComparablePool } from './pool.js';
-
-export type Confidence = 'insufficient' | 'low' | 'medium' | 'high';
 
 export interface Feasibility {
   /** Share of the pool sold at or below the budget; null when the pool is too small to say. */

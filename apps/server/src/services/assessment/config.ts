@@ -26,7 +26,4 @@ export const ASSESSMENT_CONFIG = {
   /** "What you can get": the spread shown as "most deals" (percentiles). */
   typicalRange: { low: 0.25, high: 0.75, minDeals: 3 },
   maxReferenceDeals: 10,
-  maxCompromises: 4,
 } as const;
-
-export type AssessmentConfig = typeof ASSESSMENT_CONFIG;

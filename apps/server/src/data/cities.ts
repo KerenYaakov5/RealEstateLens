@@ -172,3 +172,13 @@ export const LATIN_TOKEN_TRANSLATIONS: Readonly<Record<string, string>> = {
   maccabim: 'מכבים',
   reut: 'רעות',
 };
+
+/** Translates the Latin words of a match key to Hebrew ("tel אביב" → "תל אביב"). */
+export function translateLatinTokens(matchKey: string): string {
+  return matchKey
+    .split(' ')
+    .map((token) => {
+      return LATIN_TOKEN_TRANSLATIONS[token] ?? token;
+    })
+    .join(' ');
+}

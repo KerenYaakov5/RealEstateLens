@@ -66,7 +66,7 @@ export function normalizeRequiredInt(raw: RawCell, range: IntegerRange): FieldRe
   return ok(value);
 }
 
-export const PRICE_RANGE = { min: 100_000, max: 100_000_000 } as const;
+const PRICE_RANGE = { min: 100_000, max: 100_000_000 } as const;
 
 /** Deal price in NIS – mandatory, positive and within a sane range. */
 export function normalizePrice(raw: RawCell): FieldResult<number> {

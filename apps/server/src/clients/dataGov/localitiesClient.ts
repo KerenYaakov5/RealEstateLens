@@ -72,6 +72,12 @@ export class LocalitiesClient {
         'user-agent': 'RealEstateLens/0.1 (+https://github.com/KerenYaakov5/RealEstateLens)',
       },
     });
+    if (body.result.records.length < body.result.total) {
+      // The file grew past the page size – fail rather than silently store a partial list.
+      throw new Error(
+        `Localities API returned ${body.result.records.length} of ${body.result.total} records`,
+      );
+    }
     return body.result.records.map((record): CbsLocality => {
       return {
         code: record[FIELD_CODE],

@@ -1,6 +1,7 @@
 import type { RequestHandler } from 'express';
 import { ipKeyGenerator, rateLimit } from 'express-rate-limit';
 import { AppError } from '../errors/AppError.js';
+import { normalizeEmail } from '../repositories/user.repository.js';
 
 // Limits are kept in memory. With more than one server instance they would need a shared
 // store (Postgres or Redis) – see the plan.
@@ -24,7 +25,7 @@ export function loginRateLimit(maxAttempts: number, windowMinutes: number): Requ
         body !== null &&
         'email' in body &&
         typeof body.email === 'string'
-          ? body.email.trim().toLowerCase()
+          ? normalizeEmail(body.email)
           : '';
       return `${clientIp(req.ip)}|${email}`;
     },

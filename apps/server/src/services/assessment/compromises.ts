@@ -1,4 +1,10 @@
-import { FEATURES, type Feature, type MarketCriteria } from '@rel/shared';
+import {
+  FEATURES,
+  type CompromiseType,
+  type FactDto as Fact,
+  type Feature,
+  type MarketCriteria,
+} from '@rel/shared';
 import { distanceKm } from '../geo/itm.js';
 import { ASSESSMENT_CONFIG } from './config.js';
 import { computeFeasibility, type Feasibility } from './feasibility.js';
@@ -6,21 +12,6 @@ import { buildPool, type PoolCriteria } from './pool.js';
 import { nearestRank, sortedNumbers } from './stats.js';
 import type { PricedMarket } from './market.js';
 import type { PricedDeal } from './types.js';
-
-export type CompromiseType =
-  | 'dropFeature'
-  | 'fewerRooms'
-  | 'anyNeighborhood'
-  | 'otherNeighborhood'
-  | 'nearbyCity'
-  | 'raiseBudget';
-
-/** A number or name computed from the deals; the only things an explanation may cite. */
-export interface Fact {
-  id: string;
-  key: string;
-  value: number | string;
-}
 
 export interface CompromiseCandidate {
   id: string;

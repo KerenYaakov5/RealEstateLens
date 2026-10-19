@@ -54,12 +54,6 @@ export interface IndexPointInput {
   value: number;
 }
 
-export interface MarketSnapshot {
-  deals: readonly SnapshotDeal[];
-  cities: ReadonlyMap<string, SnapshotCity>;
-  priceIndex: readonly IndexPointInput[];
-}
-
 /** A deal with its price expressed in today's terms where the CBS index allows it. */
 export interface PricedDeal extends SnapshotDeal {
   adjustedPrice: number;

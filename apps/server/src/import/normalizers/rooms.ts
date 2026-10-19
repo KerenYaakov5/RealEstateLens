@@ -17,7 +17,7 @@ export function normalizeRooms(raw: RawCell): FieldResult<number> {
   if (typeof raw === 'number') {
     value = raw;
   } else {
-    const text = cleanText(typeof raw === 'string' ? raw : String(raw)) ?? '';
+    const text = cleanText(raw) ?? '';
     const numericPart = text
       .replace(ROOM_WORDS, '')
       .trim()
