@@ -2,17 +2,25 @@ import { randomUUID } from 'node:crypto';
 import cookieParser from 'cookie-parser';
 import express, { Router, type Express } from 'express';
 import { pinoHttp } from 'pino-http';
+import { MAX_URL_LENGTH } from '@rel/shared';
+import { AssessmentController } from './controllers/assessment.controller.js';
 import { MarketController } from './controllers/market.controller.js';
 import { SessionController } from './controllers/session.controller.js';
 import { logger } from './lib/logger.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { apiRateLimit, loginRateLimit } from './middleware/rateLimits.js';
 import { requireAuth } from './middleware/requireAuth.js';
+import { limitUrlLength } from './middleware/urlLength.js';
 import { createHealthRouter } from './routes/health.routes.js';
-import { createCityRouter, createDealRouter } from './routes/market.routes.js';
+import {
+  createAssessmentRouter,
+  createCityRouter,
+  createDealRouter,
+} from './routes/market.routes.js';
 import { createSessionRouter } from './routes/session.routes.js';
 import { createUserRouter } from './routes/user.routes.js';
 import type { AuthService } from './services/auth.service.js';
+import { MarketAssessmentService } from './services/marketAssessment.service.js';
 import type { MarketDataService } from './services/marketData.service.js';
 
 export interface AppOptions {
@@ -52,6 +60,7 @@ export function createApp(deps: AppDeps): Express {
   app.use(cookieParser());
 
   const api = Router();
+  api.use(limitUrlLength(MAX_URL_LENGTH));
 
   // Public
   api.use('/health', createHealthRouter());
@@ -69,6 +78,12 @@ export function createApp(deps: AppDeps): Express {
   const market = new MarketController(deps.marketData);
   api.use('/cities', createCityRouter(market));
   api.use('/deals', createDealRouter(market));
+  api.use(
+    '/market-assessments',
+    createAssessmentRouter(
+      new AssessmentController(deps.marketData, new MarketAssessmentService()),
+    ),
+  );
 
   app.use('/api/v1', api);
   app.use('/api', notFoundHandler);

@@ -98,13 +98,48 @@ function compareNullable(a: number | string | null, b: number | string | null): 
   return a < b ? -1 : 1;
 }
 
-export function searchDeals(market: PricedMarket, query: DealsQuery): Page<DealDto> {
-  const byId = citiesById(market);
+/** Converts in-memory deals to the API shape (shared by /deals and /market-assessments). */
+export function createDealMapper(market: PricedMarket): (deal: PricedDeal) => DealDto {
   const neighborhoodIds = new Map(
     market.neighborhoods.map((neighborhood) => {
       return [neighborhoodKey(neighborhood.cityKey, neighborhood.name), neighborhood.id] as const;
     }),
   );
+  return (deal) => {
+    const city = market.cities.get(deal.cityKey);
+    const neighborhoodId =
+      deal.neighborhood === null
+        ? undefined
+        : neighborhoodIds.get(neighborhoodKey(deal.cityKey, deal.neighborhood));
+    return {
+      id: deal.id,
+      dealId: deal.dealId,
+      city: { id: city?.id ?? 0, name: city?.nameHe ?? deal.cityKey },
+      neighborhood:
+        deal.neighborhood === null || neighborhoodId === undefined
+          ? null
+          : { id: neighborhoodId, name: deal.neighborhood },
+      street: deal.street,
+      propertyType: deal.propertyType,
+      rooms: deal.rooms,
+      sizeSqm: deal.sizeSqm,
+      floor: deal.floor,
+      totalFloors: deal.totalFloors,
+      yearBuilt: deal.yearBuilt,
+      condition: deal.condition,
+      features: { ...deal.features },
+      dealDate: deal.dealDate,
+      priceNis: deal.priceNis,
+      adjustedPriceNis: deal.adjustedPrice,
+      isAdjusted: deal.isAdjusted,
+      pricePerSqm: pricePerSqm(deal),
+      source: deal.source,
+    };
+  };
+}
+
+export function searchDeals(market: PricedMarket, query: DealsQuery): Page<DealDto> {
+  const byId = citiesById(market);
   const neighborhoodById = new Map(
     market.neighborhoods.map((neighborhood) => {
       return [neighborhood.id, neighborhood] as const;
@@ -170,37 +205,8 @@ export function searchDeals(market: PricedMarket, query: DealsQuery): Page<DealD
 
   const totalItems = sorted.length;
   const start = (query.page - 1) * query.pageSize;
-  const data = sorted.slice(start, start + query.pageSize).map((deal): DealDto => {
-    const city = market.cities.get(deal.cityKey);
-    const neighborhoodId =
-      deal.neighborhood === null
-        ? undefined
-        : neighborhoodIds.get(neighborhoodKey(deal.cityKey, deal.neighborhood));
-    return {
-      id: deal.id,
-      dealId: deal.dealId,
-      city: { id: city?.id ?? 0, name: city?.nameHe ?? deal.cityKey },
-      neighborhood:
-        deal.neighborhood === null || neighborhoodId === undefined
-          ? null
-          : { id: neighborhoodId, name: deal.neighborhood },
-      street: deal.street,
-      propertyType: deal.propertyType,
-      rooms: deal.rooms,
-      sizeSqm: deal.sizeSqm,
-      floor: deal.floor,
-      totalFloors: deal.totalFloors,
-      yearBuilt: deal.yearBuilt,
-      condition: deal.condition,
-      features: { ...deal.features },
-      dealDate: deal.dealDate,
-      priceNis: deal.priceNis,
-      adjustedPriceNis: deal.adjustedPrice,
-      isAdjusted: deal.isAdjusted,
-      pricePerSqm: pricePerSqm(deal),
-      source: deal.source,
-    };
-  });
+  const toDto = createDealMapper(market);
+  const data = sorted.slice(start, start + query.pageSize).map(toDto);
 
   return {
     data,
