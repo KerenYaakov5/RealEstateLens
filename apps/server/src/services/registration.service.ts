@@ -2,21 +2,20 @@ import type { RegistrationRequest } from '@rel/shared';
 import type { Database } from '../db/client.js';
 import { users } from '../db/schema.js';
 import { AppError } from '../errors/AppError.js';
-import { consumeInviteCode } from '../repositories/inviteCode.repository.js';
+import { useRegistrationCode } from '../repositories/registrationCode.repository.js';
 import { normalizeEmail } from '../repositories/user.repository.js';
 import { hashPassword, type AuthService, type AuthUser } from './auth.service.js';
-import { hashInviteCode } from './inviteCodes.js';
+import { hashRegistrationCode } from './registrationCode.js';
 
-const INVALID_CODE = new AppError(
+const WRONG_CODE = new AppError(
   400,
-  'INVALID_INVITE_CODE',
-  'קוד ההזמנה אינו תקף: ייתכן שהוקלד לא נכון, שכבר נוצל או שפג תוקפו',
+  'INVALID_REGISTRATION_CODE',
+  'קוד ההרשמה שגוי. בדקו את הקוד שקיבלתם ממנהל המערכת.',
 );
 
 /**
- * Self-registration with an invite code. Taking a use of the code and creating the user happen
- * in one transaction: if the user cannot be created (e.g. the email exists), the use is
- * returned to the code.
+ * Self-registration with the registration code. Counting the code's use and creating the user
+ * are one transaction: if the user cannot be created (e.g. the email exists), nothing changes.
  */
 export class RegistrationService {
   constructor(
@@ -30,9 +29,12 @@ export class RegistrationService {
     const passwordHash = await hashPassword(request.password);
 
     const record = await this.db.transaction(async (tx) => {
-      const inviteCodeId = await consumeInviteCode(tx, hashInviteCode(request.inviteCode));
-      if (inviteCodeId === null) {
-        throw INVALID_CODE;
+      const registrationCodeId = await useRegistrationCode(
+        tx,
+        hashRegistrationCode(request.registrationCode),
+      );
+      if (registrationCodeId === null) {
+        throw WRONG_CODE;
       }
       // Checked only after a valid code, so the form cannot be used to probe for emails.
       const existing = await tx.query.users.findFirst({
@@ -44,7 +46,7 @@ export class RegistrationService {
       }
       const [created] = await tx
         .insert(users)
-        .values({ email, passwordHash, inviteCodeId, lastLoginAt: new Date() })
+        .values({ email, passwordHash, registrationCodeId, lastLoginAt: new Date() })
         .returning();
       if (created === undefined) {
         throw new Error('Failed to create user');

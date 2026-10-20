@@ -4,16 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AdminPage } from '../../src/features/admin/AdminPage';
 
-const CODE = {
-  id: 1,
-  label: 'דנה',
-  hint: 'HJK9',
-  maxUses: 1,
-  usedCount: 0,
-  expiresAt: null,
-  createdAt: '2026-10-20T10:00:00.000Z',
-  status: 'active',
-};
+const CODE = { code: 'ABCD-EFGH-JKMN', createdAt: '2026-10-20T10:00:00.000Z', usedCount: 3 };
 const USER = {
   id: 5,
   email: 'dana@example.com',
@@ -21,29 +12,37 @@ const USER = {
   isAdmin: false,
   createdAt: '2026-10-20T10:00:00.000Z',
   lastLoginAt: null,
-  invitedWith: 'דנה',
+  registeredWithCode: 'JKMN',
   aiRecommendationsToday: 2,
 };
 
-const calls: { url: string; init?: RequestInit }[] = [];
+const calls: { url: string; method: string; body?: string }[] = [];
+let registrationOpen = true;
 
 beforeEach(() => {
   calls.length = 0;
+  registrationOpen = true;
   vi.stubGlobal(
     'fetch',
     vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
-      calls.push({ url, ...(init === undefined ? {} : { init }) });
+      const method = init?.method ?? 'GET';
+      calls.push({ url, method, ...(typeof init?.body === 'string' ? { body: init.body } : {}) });
       const json = (body: unknown, status = 200) => {
         return Promise.resolve(new Response(JSON.stringify(body), { status }));
       };
-      if (url.endsWith('/invite-codes') && init?.method === 'POST') {
-        return json({ ...CODE, id: 2, label: 'יוסי', code: 'ABCDE-FGHJK' }, 201);
+      if (url.endsWith('/registration-code')) {
+        if (method === 'POST') {
+          registrationOpen = true;
+          return json({ ...CODE, code: 'NEWC-ODEN-EWCD', usedCount: 0 }, 201);
+        }
+        if (method === 'DELETE') {
+          registrationOpen = false;
+          return Promise.resolve(new Response(null, { status: 204 }));
+        }
+        return registrationOpen ? json(CODE) : Promise.resolve(new Response(null, { status: 204 }));
       }
-      if (url.endsWith('/invite-codes')) {
-        return json({ data: [CODE] });
-      }
-      if (url.endsWith('/users') && init?.method === undefined) {
+      if (url.endsWith('/users') && method === 'GET') {
         return json({ data: [USER] });
       }
       return json({ ok: true });
@@ -64,31 +63,43 @@ function renderPage() {
   );
 }
 
+async function confirmIn(dialogName: string, action: string) {
+  const dialog = screen.getByRole('dialog', { name: dialogName, hidden: true });
+  await userEvent.click(within(dialog).getByRole('button', { name: action, hidden: true }));
+}
+
 describe('AdminPage', () => {
-  it('lists codes and users', async () => {
+  it('shows the current code with its use count, and the users', async () => {
     renderPage();
 
-    const codes = screen.getByRole('region', { name: 'קודי הזמנה' });
-    expect(await within(codes).findByText('HJK9')).toBeInTheDocument();
-    expect(within(codes).getByText('פעיל')).toBeInTheDocument();
+    const section = screen.getByRole('region', { name: 'קוד הרשמה' });
+    expect(await within(section).findByText('ABCD-EFGH-JKMN')).toBeInTheDocument();
+    expect(section).toHaveTextContent('נרשמו איתו 3');
     const users = screen.getByRole('region', { name: 'משתמשים' });
     expect(await within(users).findByText('dana@example.com')).toBeInTheDocument();
-    expect(within(users).getByText(/קוד: דנה/)).toBeInTheDocument();
+    expect(users).toHaveTextContent('נרשם/ה בקוד שמסתיים ב-JKMN');
   });
 
-  it('creates a code and shows it once', async () => {
+  it('replaces the code only after confirmation', async () => {
     renderPage();
+    await screen.findByText('ABCD-EFGH-JKMN');
 
-    await userEvent.type(screen.getByLabelText('למי הקוד'), 'יוסי');
-    await userEvent.click(screen.getByRole('button', { name: 'יצירת קוד' }));
+    await userEvent.click(screen.getByRole('button', { name: 'החלפת קוד' }));
+    expect(calls.some((call) => call.method === 'POST')).toBe(false);
+    await confirmIn('להחליף את קוד ההרשמה?', 'החלפה');
 
-    expect(await screen.findByText('ABCDE-FGHJK')).toBeInTheDocument();
-    const post = calls.find((call) => call.init?.method === 'POST');
-    expect(JSON.parse(String(post?.init?.body))).toEqual({
-      label: 'יוסי',
-      maxUses: 1,
-      expiresInDays: 30,
-    });
+    expect(calls.some((call) => call.method === 'POST')).toBe(true);
+  });
+
+  it('closes registration and offers to create a new code', async () => {
+    renderPage();
+    await screen.findByText('ABCD-EFGH-JKMN');
+
+    await userEvent.click(screen.getByRole('button', { name: 'סגירת ההרשמה' }));
+    await confirmIn('לסגור את ההרשמה?', 'סגירה');
+
+    expect(await screen.findByText(/ההרשמה סגורה כרגע/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'יצירת קוד' })).toBeInTheDocument();
   });
 
   it('blocks a user', async () => {
@@ -96,8 +107,8 @@ describe('AdminPage', () => {
 
     await userEvent.click(await screen.findByRole('button', { name: 'חסימה' }));
 
-    const patch = calls.find((call) => call.init?.method === 'PATCH');
+    const patch = calls.find((call) => call.method === 'PATCH');
     expect(patch?.url).toBe('/api/v1/users/5');
-    expect(JSON.parse(String(patch?.init?.body))).toEqual({ isActive: false });
+    expect(JSON.parse(patch?.body ?? '{}')).toEqual({ isActive: false });
   });
 });

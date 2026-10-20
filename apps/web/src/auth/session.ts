@@ -3,7 +3,7 @@ import { ApiError, deleteResource, getJson, postJson } from '../api/client';
 
 export interface SessionUser {
   email: string;
-  /** May manage invite codes and users. */
+  /** May manage the registration code and users. */
   isAdmin?: boolean;
   /** Personal recommendations left today (missing right after login until /users/me). */
   aiQuotaLeft?: number;
@@ -33,10 +33,10 @@ export interface Credentials {
 }
 
 export interface Registration extends Credentials {
-  inviteCode: string;
+  registrationCode: string;
 }
 
-/** Registration with an invite code; the new user is logged in right away. */
+/** Registration with the registration code; the new user is logged in right away. */
 export function useRegister() {
   const queryClient = useQueryClient();
   return useMutation({

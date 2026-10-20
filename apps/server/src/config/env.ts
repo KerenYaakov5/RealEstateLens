@@ -39,7 +39,7 @@ const envSchema = z
     LOGIN_WINDOW_MINUTES: z.coerce.number().int().positive().default(15),
     REGISTRATIONS_PER_HOUR: z.coerce.number().int().positive().default(10),
 
-    // Administrators (comma-separated emails): manage invite codes and users in the app.
+    // Administrators (comma-separated emails): manage the registration code and users.
     ADMIN_EMAILS: z
       .string()
       .default('')

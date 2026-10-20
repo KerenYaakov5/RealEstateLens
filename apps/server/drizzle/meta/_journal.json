@@ -71,6 +71,13 @@
       "when": 1792519018659,
       "tag": "0009_invite_codes",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792521021950,
+      "tag": "0010_registration_code",
+      "breakpoints": true
     }
   ]
 }

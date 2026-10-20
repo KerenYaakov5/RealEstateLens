@@ -14,7 +14,7 @@ function renderPage() {
 }
 
 async function fill(code: string, email: string, password: string, confirm: string) {
-  await userEvent.type(screen.getByLabelText('קוד הזמנה'), code);
+  await userEvent.type(screen.getByLabelText('קוד הרשמה'), code);
   await userEvent.type(screen.getByLabelText('אימייל'), email);
   await userEvent.type(screen.getByLabelText(/^סיסמה/), password);
   await userEvent.type(screen.getByLabelText('אימות סיסמה'), confirm);
@@ -29,7 +29,7 @@ describe('RegisterPage', () => {
     renderPage();
     const button = screen.getByRole('button', { name: 'הרשמה' });
 
-    await fill('ABCDE-FGHJK', 'a@b.co', 'short', 'short');
+    await fill('ABCD-EFGH-JKMN', 'a@b.co', 'short', 'short');
     expect(button).toBeDisabled();
     expect(screen.getByText('הסיסמה צריכה לכלול לפחות 10 תווים')).toBeInTheDocument();
   });
@@ -39,7 +39,7 @@ describe('RegisterPage', () => {
       Promise.resolve(
         new Response(
           JSON.stringify({
-            error: { code: 'INVALID_INVITE_CODE', message: 'קוד ההזמנה אינו תקף' },
+            error: { code: 'INVALID_REGISTRATION_CODE', message: 'קוד ההרשמה שגוי' },
           }),
           { status: 400 },
         ),
@@ -48,16 +48,16 @@ describe('RegisterPage', () => {
     vi.stubGlobal('fetch', fetchMock);
     renderPage();
 
-    await fill('ABCDE-FGHJK', 'a@b.co', 'a-good-password', 'a-good-password');
+    await fill('ABCD-EFGH-JKMN', 'a@b.co', 'a-good-password', 'a-good-password');
     await userEvent.click(screen.getByRole('button', { name: 'הרשמה' }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('קוד ההזמנה אינו תקף');
+    expect(await screen.findByRole('alert')).toHaveTextContent('קוד ההרשמה שגוי');
     const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toBe('/api/v1/users');
     expect(JSON.parse(String(init.body))).toEqual({
       email: 'a@b.co',
       password: 'a-good-password',
-      inviteCode: 'ABCDE-FGHJK',
+      registrationCode: 'ABCD-EFGH-JKMN',
     });
   });
 });

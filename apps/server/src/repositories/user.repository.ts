@@ -1,6 +1,6 @@
 import { and, desc, eq, sql } from 'drizzle-orm';
 import type { Database } from '../db/client.js';
-import { aiUsage, inviteCodes, users } from '../db/schema.js';
+import { aiUsage, registrationCodes, users } from '../db/schema.js';
 
 export type UserRecord = typeof users.$inferSelect;
 
@@ -40,7 +40,7 @@ export class UserRepository {
     return row;
   }
 
-  /** Every user with the invite code they came with and their AI use on `day` (YYYY-MM-DD). */
+  /** Every user with the code they registered with and their AI use on `day` (YYYY-MM-DD). */
   listForAdmin(day: string) {
     return this.db
       .select({
@@ -49,11 +49,11 @@ export class UserRepository {
         isActive: users.isActive,
         createdAt: users.createdAt,
         lastLoginAt: users.lastLoginAt,
-        invitedWith: inviteCodes.label,
+        registeredWithCode: registrationCodes.hint,
         aiRecommendationsToday: sql<number>`coalesce(${aiUsage.recommendations}, 0)::int`,
       })
       .from(users)
-      .leftJoin(inviteCodes, eq(inviteCodes.id, users.inviteCodeId))
+      .leftJoin(registrationCodes, eq(registrationCodes.id, users.registrationCodeId))
       .leftJoin(aiUsage, and(eq(aiUsage.userId, users.id), eq(aiUsage.day, day)))
       .orderBy(desc(users.createdAt));
   }

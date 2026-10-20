@@ -50,7 +50,7 @@ export function apiRateLimit(perMinute: number): RequestHandler {
   });
 }
 
-/** Registration attempts per IP and hour – every attempt counts, also wrong invite codes. */
+/** Registration attempts per IP and hour – every attempt counts, also wrong codes. */
 export function registrationRateLimit(perHour: number): RequestHandler {
   return rateLimit({
     windowMs: 60 * 60_000,

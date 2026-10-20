@@ -35,8 +35,8 @@ const timestamps = {
 };
 
 /**
- * Users register with an invite code (or are added by the administrator). Passwords are stored
- * only as an Argon2 hash.
+ * Users register with the registration code (or are added by the administrator). Passwords are
+ * stored only as an Argon2 hash.
  */
 export const users = pgTable('users', {
   id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
@@ -45,23 +45,23 @@ export const users = pgTable('users', {
   passwordHash: text('password_hash').notNull(),
   isActive: boolean('is_active').notNull().default(true),
   lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
-  /** The invite code used to register; null for users added by the administrator. */
-  inviteCodeId: integer('invite_code_id'),
+  /** The registration code used to register; null for users added by the administrator. */
+  registrationCodeId: integer('registration_code_id'),
   ...timestamps,
 });
 
 /**
- * Invite codes the administrator hands out. Only a SHA-256 hash of the code is stored (like a
- * password); `hint` (its last characters) tells codes apart in the admin screen.
+ * The registration code: one permanent code the administrator shares, replaced when abused.
+ * Only one row is active (disabled_at null); replaced codes stay for the record. The code is
+ * kept encrypted, so the administrator can see it again, and as a SHA-256 hash for lookup.
  */
-export const inviteCodes = pgTable('invite_codes', {
+export const registrationCodes = pgTable('registration_codes', {
   id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
   codeHash: text('code_hash').notNull().unique(),
+  codeEncrypted: text('code_encrypted').notNull(),
+  /** The last characters, to tell codes apart in the user list. */
   hint: text('hint').notNull(),
-  label: text('label').notNull(),
-  maxUses: integer('max_uses').notNull().default(1),
   usedCount: integer('used_count').notNull().default(0),
-  expiresAt: timestamp('expires_at', { withTimezone: true }),
   disabledAt: timestamp('disabled_at', { withTimezone: true }),
   createdByUserId: integer('created_by_user_id'),
   ...timestamps,

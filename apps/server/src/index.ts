@@ -13,7 +13,7 @@ import { logger } from './lib/logger.js';
 import { AiCacheRepository } from './repositories/aiCache.repository.js';
 import { AiUsageRepository } from './repositories/aiUsage.repository.js';
 import { CityRepository } from './repositories/city.repository.js';
-import { InviteCodeRepository } from './repositories/inviteCode.repository.js';
+import { RegistrationCodeRepository } from './repositories/registrationCode.repository.js';
 import { DealRepository } from './repositories/deal.repository.js';
 import { NeighborhoodRepository } from './repositories/neighborhood.repository.js';
 import { PriceIndexRepository } from './repositories/priceIndex.repository.js';
@@ -24,6 +24,7 @@ import { LocalityService } from './services/locality.service.js';
 import { MarketDataService } from './services/marketData.service.js';
 import { PriceIndexService } from './services/priceIndex.service.js';
 import { RegistrationService } from './services/registration.service.js';
+import { RegistrationCodeVault } from './services/registrationCode.js';
 import { CompromiseRecommendationService } from './services/recommendation/recommendation.service.js';
 
 const database = createDatabase({
@@ -109,7 +110,7 @@ async function start(): Promise<void> {
     env.ADMIN_EMAILS,
   );
   if (env.ADMIN_EMAILS.length === 0) {
-    logger.warn('ADMIN_EMAILS is empty – nobody can create invite codes or manage users');
+    logger.warn('ADMIN_EMAILS is empty – nobody can manage the registration code or users');
   }
 
   const isProduction = env.NODE_ENV === 'production';
@@ -117,7 +118,8 @@ async function start(): Promise<void> {
     auth,
     registrations: new RegistrationService(database.db, auth),
     users: userRepository,
-    inviteCodes: new InviteCodeRepository(database.db),
+    registrationCodes: new RegistrationCodeRepository(database.db),
+    registrationCodeVault: new RegistrationCodeVault(env.JWT_SECRET),
     marketData,
     recommendations,
     options: {

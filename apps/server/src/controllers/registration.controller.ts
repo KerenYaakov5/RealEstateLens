@@ -9,7 +9,7 @@ export class RegistrationController {
     private readonly sessions: SessionController,
   ) {}
 
-  /** POST /users – register with an invite code; the new user is logged in right away. */
+  /** POST /users – register with the registration code; the new user is logged in at once. */
   create: RequestHandler = async (req, res) => {
     const body = registrationSchema.parse(req.body);
     const user = await this.registrations.register(body);

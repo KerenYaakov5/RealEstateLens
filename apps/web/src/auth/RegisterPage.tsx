@@ -5,9 +5,9 @@ import { useRegister } from './session';
 
 const FALLBACK_ERROR = 'ההרשמה נכשלה. נסו שוב.';
 
-/** Registration with an invite code from the administrator. */
+/** Registration with the code the administrator shares. */
 export function RegisterPage({ onLogin }: { onLogin: () => void }) {
-  const [inviteCode, setInviteCode] = useState('');
+  const [registrationCode, setRegistrationCode] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -22,7 +22,7 @@ export function RegisterPage({ onLogin }: { onLogin: () => void }) {
       : null;
   const errorMessage = authErrorMessage(register.error, FALLBACK_ERROR);
   const ready =
-    inviteCode.trim() !== '' &&
+    registrationCode.trim() !== '' &&
     email.trim() !== '' &&
     password.length >= MIN_PASSWORD_LENGTH &&
     confirm === password;
@@ -30,7 +30,7 @@ export function RegisterPage({ onLogin }: { onLogin: () => void }) {
   const onSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
     if (ready) {
-      register.mutate({ email, password, inviteCode });
+      register.mutate({ email, password, registrationCode });
     }
   };
 
@@ -42,20 +42,18 @@ export function RegisterPage({ onLogin }: { onLogin: () => void }) {
         noValidate
       >
         <h2 className="mb-1 text-xl font-bold">הרשמה</h2>
-        <p className="mb-5 text-sm text-ink-soft">
-          ההרשמה בהזמנה בלבד, עם קוד שקיבלת ממנהל המערכת.
-        </p>
+        <p className="mb-5 text-sm text-ink-soft">ההרשמה עם קוד ההרשמה שקיבלת ממנהל המערכת.</p>
 
         <label className="mb-4 block">
-          <span className="mb-1 block text-sm font-medium text-ink-soft">קוד הזמנה</span>
+          <span className="mb-1 block text-sm font-medium text-ink-soft">קוד הרשמה</span>
           <input
             autoComplete="off"
             dir="ltr"
             required
-            placeholder="XXXXX-XXXXX"
-            value={inviteCode}
+            placeholder="XXXX-XXXX-XXXX"
+            value={registrationCode}
             onChange={(event) => {
-              setInviteCode(event.target.value);
+              setRegistrationCode(event.target.value);
             }}
             className={`${INPUT_CLASS} font-mono tracking-wider uppercase`}
           />

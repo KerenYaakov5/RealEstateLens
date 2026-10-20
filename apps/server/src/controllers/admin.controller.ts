@@ -1,98 +1,78 @@
-import {
-  createInviteCodeSchema,
-  updateInviteCodeSchema,
-  updateUserSchema,
-  type AdminUserDto,
-  type CreatedInviteCodeDto,
-  type InviteCodeDto,
-} from '@rel/shared';
+import { updateUserSchema, type AdminUserDto, type RegistrationCodeDto } from '@rel/shared';
 import type { RequestHandler } from 'express';
 import { z } from 'zod';
 import { AppError } from '../errors/AppError.js';
 import type {
-  InviteCodeRecord,
-  InviteCodeRepository,
-} from '../repositories/inviteCode.repository.js';
+  RegistrationCodeRecord,
+  RegistrationCodeRepository,
+} from '../repositories/registrationCode.repository.js';
 import type { UserRepository } from '../repositories/user.repository.js';
 import type { AuthService } from '../services/auth.service.js';
-import {
-  generateInviteCode,
-  hashInviteCode,
-  inviteCodeHint,
-  inviteCodeStatus,
-} from '../services/inviteCodes.js';
 import { israelDay } from '../services/recommendation/recommendation.service.js';
+import {
+  generateRegistrationCode,
+  hashRegistrationCode,
+  registrationCodeHint,
+  type RegistrationCodeVault,
+} from '../services/registrationCode.js';
 
 const idParamsSchema = z.object({ id: z.coerce.number().int().positive() });
 
-function toInviteCodeDto(row: InviteCodeRecord, now: Date): InviteCodeDto {
-  return {
-    id: row.id,
-    label: row.label,
-    hint: row.hint,
-    maxUses: row.maxUses,
-    usedCount: row.usedCount,
-    expiresAt: row.expiresAt?.toISOString() ?? null,
-    createdAt: row.createdAt.toISOString(),
-    status: inviteCodeStatus(row, now),
-  };
-}
-
-/** Invite codes and users – for administrators only (see requireAdmin). */
+/** The registration code and users – for administrators only (see requireAdmin). */
 export class AdminController {
   constructor(
-    private readonly inviteCodes: InviteCodeRepository,
+    private readonly registrationCodes: RegistrationCodeRepository,
+    private readonly vault: RegistrationCodeVault,
     private readonly users: UserRepository,
     private readonly auth: AuthService,
-    private readonly now: () => Date = () => new Date(),
   ) {}
 
-  /** GET /invite-codes */
-  listInviteCodes: RequestHandler = async (_req, res) => {
-    const now = this.now();
-    const rows = await this.inviteCodes.list();
-    res.json({
-      data: rows.map((row) => {
-        return toInviteCodeDto(row, now);
-      }),
-    });
+  private toDto(row: RegistrationCodeRecord): RegistrationCodeDto | null {
+    const code = this.vault.decrypt(row.codeEncrypted);
+    return code === null
+      ? null
+      : { code, createdAt: row.createdAt.toISOString(), usedCount: row.usedCount };
+  }
+
+  /** GET /registration-code – 204 when registration is closed (no active code). */
+  getRegistrationCode: RequestHandler = async (_req, res) => {
+    const row = await this.registrationCodes.active();
+    const dto = row === undefined ? null : this.toDto(row);
+    if (dto === null) {
+      // No code, or one encrypted with an old server secret – either way it must be replaced.
+      res.status(204).end();
+      return;
+    }
+    res.json(dto);
   };
 
-  /** POST /invite-codes – the response is the only place the full code ever appears. */
-  createInviteCode: RequestHandler = async (req, res) => {
-    const body = createInviteCodeSchema.parse(req.body);
-    const now = this.now();
-    const code = generateInviteCode();
-    const row = await this.inviteCodes.create({
-      codeHash: hashInviteCode(code),
-      hint: inviteCodeHint(code),
-      label: body.label,
-      maxUses: body.maxUses,
-      expiresAt:
-        body.expiresInDays === undefined
-          ? null
-          : new Date(now.getTime() + body.expiresInDays * 86_400_000),
+  /** POST /registration-code – a new code; the previous one stops working at once. */
+  replaceRegistrationCode: RequestHandler = async (req, res) => {
+    const code = generateRegistrationCode();
+    const row = await this.registrationCodes.replace({
+      codeHash: hashRegistrationCode(code),
+      codeEncrypted: this.vault.encrypt(code),
+      hint: registrationCodeHint(code),
       createdByUserId: req.user?.id ?? 0,
     });
-    req.log.info({ inviteCodeId: row.id, maxUses: row.maxUses }, 'Invite code created');
-    const created: CreatedInviteCodeDto = { ...toInviteCodeDto(row, now), code };
-    res.status(201).json(created);
+    req.log.info({ registrationCodeId: row.id }, 'Registration code replaced');
+    res.status(201).json({
+      code,
+      createdAt: row.createdAt.toISOString(),
+      usedCount: row.usedCount,
+    } satisfies RegistrationCodeDto);
   };
 
-  /** PATCH /invite-codes/:id – disable or re-enable. */
-  updateInviteCode: RequestHandler = async (req, res) => {
-    const { id } = idParamsSchema.parse(req.params);
-    const body = updateInviteCodeSchema.parse(req.body);
-    const row = await this.inviteCodes.setDisabled(id, body.disabled);
-    if (row === undefined) {
-      throw AppError.notFound('קוד ההזמנה לא נמצא');
-    }
-    res.json(toInviteCodeDto(row, this.now()));
+  /** DELETE /registration-code – nobody can register until a new code is created. */
+  closeRegistration: RequestHandler = async (req, res) => {
+    await this.registrationCodes.disable();
+    req.log.info('Registration closed');
+    res.status(204).end();
   };
 
   /** GET /users */
   listUsers: RequestHandler = async (_req, res) => {
-    const rows = await this.users.listForAdmin(israelDay(this.now().getTime()));
+    const rows = await this.users.listForAdmin(israelDay(Date.now()));
     res.json({
       data: rows.map((row): AdminUserDto => {
         return {
@@ -102,7 +82,7 @@ export class AdminController {
           isAdmin: this.auth.toAuthUser(row).isAdmin,
           createdAt: row.createdAt.toISOString(),
           lastLoginAt: row.lastLoginAt?.toISOString() ?? null,
-          invitedWith: row.invitedWith,
+          registeredWithCode: row.registeredWithCode,
           aiRecommendationsToday: row.aiRecommendationsToday,
         };
       }),

@@ -29,11 +29,11 @@ export function createUserRouter(
   return router;
 }
 
-export function createInviteCodeRouter(admin: AdminController): Router {
+export function createRegistrationCodeRouter(admin: AdminController): Router {
   const router = Router();
   router.use(requireAdmin);
-  router.get('/', admin.listInviteCodes);
-  router.post('/', admin.createInviteCode);
-  router.patch('/:id', admin.updateInviteCode);
+  router.get('/', admin.getRegistrationCode);
+  router.post('/', admin.replaceRegistrationCode);
+  router.delete('/', admin.closeRegistration);
   return router;
 }

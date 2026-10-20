@@ -5,7 +5,7 @@ import { normalizeEmail, type UserRepository } from '../repositories/user.reposi
 export interface AuthUser {
   id: number;
   email: string;
-  /** Set by ADMIN_EMAILS: may manage invite codes and users. */
+  /** Set by ADMIN_EMAILS: may manage the registration code and users. */
   isAdmin: boolean;
 }
 

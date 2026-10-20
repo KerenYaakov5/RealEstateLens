@@ -24,13 +24,14 @@ import {
 } from './routes/market.routes.js';
 import { createRecommendationRouter } from './routes/recommendation.routes.js';
 import { createSessionRouter } from './routes/session.routes.js';
-import { createInviteCodeRouter, createUserRouter } from './routes/user.routes.js';
-import type { InviteCodeRepository } from './repositories/inviteCode.repository.js';
+import { createRegistrationCodeRouter, createUserRouter } from './routes/user.routes.js';
+import type { RegistrationCodeRepository } from './repositories/registrationCode.repository.js';
 import type { UserRepository } from './repositories/user.repository.js';
 import type { AuthService } from './services/auth.service.js';
 import { MarketAssessmentService } from './services/marketAssessment.service.js';
 import type { MarketDataService } from './services/marketData.service.js';
 import type { RegistrationService } from './services/registration.service.js';
+import type { RegistrationCodeVault } from './services/registrationCode.js';
 import type { CompromiseRecommendationService } from './services/recommendation/recommendation.service.js';
 
 export interface AppOptions {
@@ -40,7 +41,7 @@ export interface AppOptions {
   rateLimitPerMinute: number;
   loginMaxAttempts: number;
   loginWindowMinutes: number;
-  /** Registration attempts per IP and hour (wrong invite codes count too). */
+  /** Registration attempts per IP and hour (wrong codes count too). */
   registrationsPerHour: number;
   /** Folder of the built web client; null = API only. */
   webDistPath: string | null;
@@ -52,7 +53,8 @@ export interface AppDeps {
   recommendations: CompromiseRecommendationService;
   registrations: RegistrationService;
   users: UserRepository;
-  inviteCodes: InviteCodeRepository;
+  registrationCodes: RegistrationCodeRepository;
+  registrationCodeVault: RegistrationCodeVault;
   options: AppOptions;
 }
 
@@ -101,7 +103,7 @@ export function createApp(deps: AppDeps): Express {
       loginRateLimit(deps.options.loginMaxAttempts, deps.options.loginWindowMinutes),
     ),
   );
-  // Registration with an invite code – public, like login.
+  // Registration with the registration code – public, like login.
   api.post(
     '/users',
     registrationRateLimit(deps.options.registrationsPerHour),
@@ -110,9 +112,14 @@ export function createApp(deps: AppDeps): Express {
 
   // Everything below requires a logged-in user
   api.use(requireAuth(deps.auth), apiRateLimit(deps.options.rateLimitPerMinute));
-  const admin = new AdminController(deps.inviteCodes, deps.users, deps.auth);
+  const admin = new AdminController(
+    deps.registrationCodes,
+    deps.registrationCodeVault,
+    deps.users,
+    deps.auth,
+  );
   api.use('/users', createUserRouter(deps.recommendations, admin));
-  api.use('/invite-codes', createInviteCodeRouter(admin));
+  api.use('/registration-code', createRegistrationCodeRouter(admin));
   const market = new MarketController(deps.marketData);
   api.use('/cities', createCityRouter(market));
   api.use('/deals', createDealRouter(market));

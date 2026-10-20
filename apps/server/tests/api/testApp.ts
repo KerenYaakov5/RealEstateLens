@@ -11,7 +11,7 @@ import { logger } from '../../src/lib/logger.js';
 import { AiCacheRepository } from '../../src/repositories/aiCache.repository.js';
 import { AiUsageRepository } from '../../src/repositories/aiUsage.repository.js';
 import { CityRepository } from '../../src/repositories/city.repository.js';
-import { InviteCodeRepository } from '../../src/repositories/inviteCode.repository.js';
+import { RegistrationCodeRepository } from '../../src/repositories/registrationCode.repository.js';
 import { DealRepository } from '../../src/repositories/deal.repository.js';
 import { NeighborhoodRepository } from '../../src/repositories/neighborhood.repository.js';
 import { PriceIndexRepository } from '../../src/repositories/priceIndex.repository.js';
@@ -21,6 +21,7 @@ import { AuthService, hashPassword } from '../../src/services/auth.service.js';
 import { LocalityService } from '../../src/services/locality.service.js';
 import { MarketDataService } from '../../src/services/marketData.service.js';
 import { RegistrationService } from '../../src/services/registration.service.js';
+import { RegistrationCodeVault } from '../../src/services/registrationCode.js';
 import {
   CompromiseRecommendationService,
   type RecommendationOptions,
@@ -103,7 +104,8 @@ export async function createTestApp(setup: TestAppSetup = {}): Promise<TestApp> 
     auth,
     registrations: new RegistrationService(handle.db, auth),
     users,
-    inviteCodes: new InviteCodeRepository(handle.db),
+    registrationCodes: new RegistrationCodeRepository(handle.db),
+    registrationCodeVault: new RegistrationCodeVault(TEST_SECRET),
     marketData,
     recommendations,
     options: {

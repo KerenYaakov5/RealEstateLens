@@ -1,227 +1,195 @@
-import type {
-  AdminUserDto,
-  CreatedInviteCodeDto,
-  CreateInviteCodeRequest,
-  InviteCodeDto,
-  InviteCodeStatus,
-} from '@rel/shared';
+import type { AdminUserDto, RegistrationCodeDto } from '@rel/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState, type FormEvent } from 'react';
-import { getJson, patchJson, postJson } from '../../api/client';
+import { useRef, useState } from 'react';
+import { deleteResource, getJson, patchJson, postJson } from '../../api/client';
 import { formatDate } from '../../lib/format';
 
-const CODES_KEY = ['admin', 'inviteCodes'] as const;
+const CODE_KEY = ['admin', 'registrationCode'] as const;
 const USERS_KEY = ['admin', 'users'] as const;
-
-const STATUS: Readonly<Record<InviteCodeStatus, { text: string; tone: string }>> = {
-  active: { text: 'פעיל', tone: 'bg-good-soft text-good-ink' },
-  'used-up': { text: 'נוצל', tone: 'bg-sand text-ink-soft' },
-  expired: { text: 'פג תוקף', tone: 'bg-warn-soft text-warn-ink' },
-  disabled: { text: 'מושבת', tone: 'bg-bad-soft text-bad-ink' },
-};
-
-const EXPIRY_CHOICES = [
-  { days: undefined, label: 'ללא תפוגה' },
-  { days: 7, label: 'שבוע' },
-  { days: 30, label: 'חודש' },
-  { days: 90, label: '3 חודשים' },
-] as const;
 
 function day(iso: string | null): string {
   return iso === null ? '—' : formatDate(iso.slice(0, 10));
 }
 
-function NewCodeForm() {
+interface ConfirmProps {
+  title: string;
+  text: string;
+  action: string;
+  onConfirm: () => void;
+}
+
+/** A button that asks first – for actions that lock people out. */
+function ConfirmButton({
+  label,
+  tone,
+  confirm,
+}: {
+  label: string;
+  tone: string;
+  confirm: ConfirmProps;
+}) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => {
+          dialog.current?.showModal();
+        }}
+        className={`rounded-xl px-3 py-2 text-sm font-medium transition-colors ${tone}`}
+      >
+        {label}
+      </button>
+      <dialog
+        ref={dialog}
+        aria-label={confirm.title}
+        className="m-auto max-w-xs rounded-(--radius-card) p-5 shadow-(--shadow-card) backdrop:bg-ink/40"
+      >
+        <h3 className="font-bold">{confirm.title}</h3>
+        <p className="mt-1 text-sm text-ink-soft">{confirm.text}</p>
+        <form method="dialog" className="mt-4 flex justify-end gap-2">
+          <button type="submit" className="rounded-lg px-3 py-1.5 text-sm hover:bg-sand">
+            ביטול
+          </button>
+          <button
+            type="submit"
+            onClick={confirm.onConfirm}
+            className="rounded-lg bg-bad px-3 py-1.5 text-sm font-bold text-white"
+          >
+            {confirm.action}
+          </button>
+        </form>
+      </dialog>
+    </>
+  );
+}
+
+/** The one code people register with: always visible here, replaced when it leaks. */
+function RegistrationCode() {
   const queryClient = useQueryClient();
-  const [label, setLabel] = useState('');
-  const [maxUses, setMaxUses] = useState(1);
-  const [expiry, setExpiry] = useState<number | undefined>(30);
-  const [created, setCreated] = useState<CreatedInviteCodeDto | null>(null);
   const [copied, setCopied] = useState(false);
-  const create = useMutation({
-    mutationFn: (body: CreateInviteCodeRequest) => {
-      return postJson<CreatedInviteCodeDto>('/invite-codes', body);
-    },
-    onSuccess: (code) => {
-      setCreated(code);
-      setCopied(false);
-      setLabel('');
-      void queryClient.invalidateQueries({ queryKey: CODES_KEY });
+  const code = useQuery({
+    queryKey: CODE_KEY,
+    queryFn: ({ signal }) => {
+      // null = registration closed (204)
+      return getJson<RegistrationCodeDto>('/registration-code', signal);
     },
   });
-
-  const onSubmit = (event: FormEvent<HTMLFormElement>): void => {
-    event.preventDefault();
-    create.mutate({
-      label: label.trim(),
-      maxUses,
-      ...(expiry === undefined ? {} : { expiresInDays: expiry }),
-    });
+  const refresh = (): void => {
+    setCopied(false);
+    void queryClient.invalidateQueries({ queryKey: CODE_KEY });
   };
+  const replace = useMutation({
+    mutationFn: () => {
+      return postJson<RegistrationCodeDto>('/registration-code', {});
+    },
+    onSuccess: refresh,
+  });
+  const close = useMutation({
+    mutationFn: () => {
+      return deleteResource('/registration-code');
+    },
+    onSuccess: refresh,
+  });
+  const error = replace.error ?? close.error;
+  const current = code.data;
 
   return (
-    <div className="space-y-3">
-      <form onSubmit={onSubmit} className="flex flex-wrap items-end gap-3">
-        <label className="min-w-48 flex-1">
-          <span className="mb-1 block text-sm font-medium text-ink-soft">למי הקוד</span>
-          <input
-            value={label}
-            maxLength={80}
-            placeholder="למשל: דנה – משפחה"
-            onChange={(event) => {
-              setLabel(event.target.value);
-            }}
-            className="w-full rounded-xl border border-line bg-canvas px-3 py-2"
-          />
-        </label>
-        <label>
-          <span className="mb-1 block text-sm font-medium text-ink-soft">מספר שימושים</span>
-          <input
-            type="number"
-            min={1}
-            max={1000}
-            value={maxUses}
-            onChange={(event) => {
-              const value = event.target.valueAsNumber;
-              setMaxUses(Number.isFinite(value) ? Math.min(1000, Math.max(1, value)) : 1);
-            }}
-            className="num w-24 rounded-xl border border-line bg-canvas px-3 py-2"
-          />
-        </label>
-        <label>
-          <span className="mb-1 block text-sm font-medium text-ink-soft">תוקף</span>
-          <select
-            value={expiry ?? ''}
-            onChange={(event) => {
-              setExpiry(event.target.value === '' ? undefined : Number(event.target.value));
-            }}
-            className="rounded-xl border border-line bg-canvas px-3 py-2"
-          >
-            {EXPIRY_CHOICES.map((choice) => (
-              <option key={choice.label} value={choice.days ?? ''}>
-                {choice.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button
-          type="submit"
-          disabled={create.isPending || label.trim() === ''}
-          className="rounded-xl bg-brand px-4 py-2 font-bold text-white transition hover:bg-brand-strong disabled:opacity-50"
-        >
-          יצירת קוד
-        </button>
-      </form>
+    <section
+      aria-label="קוד הרשמה"
+      className="space-y-4 rounded-(--radius-card) bg-surface p-5 shadow-(--shadow-card)"
+    >
+      <div>
+        <h2 className="text-lg font-bold">קוד הרשמה</h2>
+        <p className="text-sm text-ink-soft">
+          קוד אחד קבוע לכל מי שתרצו להזמין. אם הוא דלף – החליפו אותו, והקוד הקודם יפסיק לעבוד מיד.
+          מי שכבר נרשם לא מושפע.
+        </p>
+      </div>
 
-      {create.error !== null && (
+      {current === undefined ? null : current === null ? (
+        <p
+          role="status"
+          className="rounded-xl border border-warn/30 bg-warn-soft px-4 py-3 text-sm font-medium text-warn-ink"
+        >
+          ההרשמה סגורה כרגע – אין קוד פעיל. צרו קוד כדי לאפשר הרשמה.
+        </p>
+      ) : (
+        <div className="flex flex-wrap items-center gap-3 rounded-xl bg-brand-soft/50 px-4 py-3">
+          <code
+            dir="ltr"
+            className="rounded-lg bg-surface px-3 py-1.5 font-mono text-lg font-bold tracking-wider"
+          >
+            {current.code}
+          </code>
+          <button
+            type="button"
+            onClick={() => {
+              void navigator.clipboard.writeText(current.code).then(() => {
+                setCopied(true);
+              });
+            }}
+            className="rounded-lg bg-surface px-3 py-1.5 text-sm font-medium hover:bg-sand"
+          >
+            {copied ? 'הועתק ✓' : 'העתקה'}
+          </button>
+          <span className="text-xs text-muted">
+            נוצר {day(current.createdAt)} · נרשמו איתו{' '}
+            <span className="num">{current.usedCount}</span>
+          </span>
+        </div>
+      )}
+
+      <div className="flex flex-wrap gap-2">
+        {current === null ? (
+          <button
+            type="button"
+            disabled={replace.isPending}
+            onClick={() => {
+              replace.mutate();
+            }}
+            className="rounded-xl bg-brand px-4 py-2 font-bold text-white transition hover:bg-brand-strong disabled:opacity-50"
+          >
+            יצירת קוד
+          </button>
+        ) : (
+          <>
+            <ConfirmButton
+              label="החלפת קוד"
+              tone="border border-line hover:bg-sand"
+              confirm={{
+                title: 'להחליף את קוד ההרשמה?',
+                text: 'הקוד הנוכחי יפסיק לעבוד מיד. תצטרכו לשלוח את הקוד החדש למי שעוד לא נרשם.',
+                action: 'החלפה',
+                onConfirm: () => {
+                  replace.mutate();
+                },
+              }}
+            />
+            <ConfirmButton
+              label="סגירת ההרשמה"
+              tone="border border-bad/40 bg-bad-soft/60 text-bad-ink hover:bg-bad-soft"
+              confirm={{
+                title: 'לסגור את ההרשמה?',
+                text: 'אף אחד לא יוכל להירשם עד שתיצרו קוד חדש. מי שכבר רשום ממשיך כרגיל.',
+                action: 'סגירה',
+                onConfirm: () => {
+                  close.mutate();
+                },
+              }}
+            />
+          </>
+        )}
+      </div>
+
+      {error !== null && (
         <p
           role="alert"
           className="rounded-xl bg-bad-soft px-3 py-2 text-sm font-medium text-bad-ink"
         >
-          {create.error.message}
+          {error.message}
         </p>
       )}
-
-      {created !== null && (
-        <div role="status" className="rounded-xl border border-good/30 bg-good-soft px-4 py-3">
-          <p className="text-sm font-medium text-good-ink">
-            הקוד של "{created.label}" נוצר. העתיקו אותו עכשיו – הוא לא יוצג שוב.
-          </p>
-          <div className="mt-2 flex flex-wrap items-center gap-3">
-            <code
-              dir="ltr"
-              className="rounded-lg bg-surface px-3 py-1.5 font-mono text-lg font-bold tracking-wider"
-            >
-              {created.code}
-            </code>
-            <button
-              type="button"
-              onClick={() => {
-                void navigator.clipboard.writeText(created.code).then(() => {
-                  setCopied(true);
-                });
-              }}
-              className="rounded-lg bg-surface px-3 py-1.5 text-sm font-medium hover:bg-sand"
-            >
-              {copied ? 'הועתק ✓' : 'העתקה'}
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function InviteCodes() {
-  const queryClient = useQueryClient();
-  const codes = useQuery({
-    queryKey: CODES_KEY,
-    queryFn: async ({ signal }) => {
-      return (await getJson<{ data: InviteCodeDto[] }>('/invite-codes', signal))?.data ?? [];
-    },
-  });
-  const toggle = useMutation({
-    mutationFn: (code: InviteCodeDto) => {
-      return patchJson<InviteCodeDto>(`/invite-codes/${code.id}`, {
-        disabled: code.status !== 'disabled',
-      });
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: CODES_KEY });
-    },
-  });
-
-  return (
-    <section
-      aria-label="קודי הזמנה"
-      className="space-y-4 rounded-(--radius-card) bg-surface p-5 shadow-(--shadow-card)"
-    >
-      <h2 className="text-lg font-bold">קודי הזמנה</h2>
-      <NewCodeForm />
-      {codes.data !== undefined && codes.data.length === 0 && (
-        <p className="text-sm text-muted">עוד לא נוצרו קודים.</p>
-      )}
-      <ul className="divide-y divide-line">
-        {(codes.data ?? []).map((code) => (
-          <li key={code.id} className="flex flex-wrap items-center justify-between gap-2 py-3">
-            <div>
-              <p className="font-medium">
-                {code.label}{' '}
-                <span className="text-xs text-muted">
-                  (מסתיים ב-
-                  <span dir="ltr" className="font-mono">
-                    {code.hint}
-                  </span>
-                  )
-                </span>
-              </p>
-              <p className="text-xs text-muted">
-                נוצל <span className="num">{code.usedCount}</span> מתוך{' '}
-                <span className="num">{code.maxUses}</span> · נוצר {day(code.createdAt)}
-                {code.expiresAt !== null && <> · בתוקף עד {day(code.expiresAt)}</>}
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <span
-                className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${STATUS[code.status].tone}`}
-              >
-                {STATUS[code.status].text}
-              </span>
-              {(code.status === 'active' || code.status === 'disabled') && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    toggle.mutate(code);
-                  }}
-                  className="rounded-lg px-2.5 py-1 text-xs font-medium text-ink-soft hover:bg-sand"
-                >
-                  {code.status === 'disabled' ? 'הפעלה מחדש' : 'השבתה'}
-                </button>
-              )}
-            </div>
-          </li>
-        ))}
-      </ul>
     </section>
   );
 }
@@ -271,9 +239,11 @@ function Users() {
               </p>
               <p className="text-xs text-muted">
                 {user.isAdmin ? 'מנהל/ת · ' : ''}
-                {user.invitedWith === null ? 'נוסף/ה ידנית' : `קוד: ${user.invitedWith}`} · נרשם/ה{' '}
-                {day(user.createdAt)} · כניסה אחרונה {day(user.lastLoginAt)} · המלצות AI היום:{' '}
-                <span className="num">{user.aiRecommendationsToday}</span>
+                {user.registeredWithCode === null
+                  ? 'נוסף/ה ידנית'
+                  : `נרשם/ה בקוד שמסתיים ב-${user.registeredWithCode}`}{' '}
+                · נרשם/ה {day(user.createdAt)} · כניסה אחרונה {day(user.lastLoginAt)} · המלצות AI
+                היום: <span className="num">{user.aiRecommendationsToday}</span>
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -305,12 +275,12 @@ function Users() {
   );
 }
 
-/** For administrators: invite codes and who can use the system. */
+/** For administrators: the registration code and who can use the system. */
 export function AdminPage() {
   return (
     <main className="mx-auto max-w-4xl space-y-6 px-4 py-6">
       <h1 className="text-2xl font-extrabold">ניהול</h1>
-      <InviteCodes />
+      <RegistrationCode />
       <Users />
     </main>
   );

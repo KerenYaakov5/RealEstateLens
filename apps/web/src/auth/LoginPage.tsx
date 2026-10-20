@@ -72,7 +72,7 @@ export function LoginPage({ onRegister }: { onRegister: () => void }) {
         </button>
 
         <p className="mt-4 text-center text-sm text-ink-soft">
-          יש לך קוד הזמנה?{' '}
+          יש לך קוד הרשמה?{' '}
           <button
             type="button"
             onClick={onRegister}
