@@ -179,7 +179,6 @@ export function CriteriaPanel({ state, dispatch, onReset }: CriteriaPanelProps) 
             inputMode="numeric"
             min={10}
             max={1000}
-            placeholder="120"
             value={state.minSize ?? ''}
             onChange={(event) => {
               const value = event.target.valueAsNumber;
