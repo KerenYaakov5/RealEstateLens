@@ -1,9 +1,11 @@
+import { useRef } from 'react';
 import { LoginPage } from './auth/LoginPage';
 import { useLogout, useSession } from './auth/session';
 import { MainScreen } from './features/MainScreen';
 
 function AppHeader({ email }: { email: string }) {
   const logout = useLogout();
+  const confirmDialog = useRef<HTMLDialogElement>(null);
   return (
     <header className="border-b border-line bg-surface">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
@@ -15,7 +17,7 @@ function AppHeader({ email }: { email: string }) {
           <button
             type="button"
             onClick={() => {
-              logout.mutate();
+              confirmDialog.current?.showModal();
             }}
             className="rounded-lg px-3 py-1.5 font-medium text-ink-soft hover:bg-sand"
           >
@@ -23,6 +25,33 @@ function AppHeader({ email }: { email: string }) {
           </button>
         </div>
       </div>
+
+      <dialog
+        ref={confirmDialog}
+        aria-labelledby="logout-title"
+        className="m-auto max-w-xs rounded-(--radius-card) p-5 shadow-(--shadow-card) backdrop:bg-ink/40"
+      >
+        <h3 id="logout-title" className="font-bold">
+          לצאת מהמערכת?
+        </h3>
+        <p className="mt-1 text-sm text-ink-soft">
+          הבחירות נשמרות בדפדפן הזה, כך שבכניסה הבאה אפשר להמשיך מאותה נקודה.
+        </p>
+        <form method="dialog" className="mt-4 flex justify-end gap-2">
+          <button type="submit" className="rounded-lg px-3 py-1.5 text-sm hover:bg-sand">
+            ביטול
+          </button>
+          <button
+            type="submit"
+            onClick={() => {
+              logout.mutate();
+            }}
+            className="rounded-lg bg-brand px-3 py-1.5 text-sm font-bold text-white"
+          >
+            יציאה
+          </button>
+        </form>
+      </dialog>
     </header>
   );
 }

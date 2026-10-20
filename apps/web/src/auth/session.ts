@@ -52,8 +52,14 @@ export function useLogout() {
     },
     onSettled: () => {
       // Whatever the server answered, the user asked to leave: drop the session and cached data.
-      queryClient.clear();
+      // The session query itself must stay in the cache – the app is subscribed to it, and
+      // clearing it would hide the null from the screen (it kept showing the data).
       queryClient.setQueryData(SESSION_KEY, null);
+      queryClient.removeQueries({
+        predicate: (query) => {
+          return query.queryKey[0] !== SESSION_KEY[0];
+        },
+      });
     },
   });
 }
