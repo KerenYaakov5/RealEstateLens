@@ -25,7 +25,7 @@ export function fallbackPicks(input: LlmInput, priorities: Priorities): Recommen
     return ratingOf(a) - ratingOf(b);
   });
   return ranked.slice(0, RECOMMENDATION_CONFIG.maxPicks).map((candidate) => {
-    const { rate, fit, pool } = candidate.facts;
+    const { rate, fit, pool, now } = candidate.facts;
     const rating = priorities[candidate.give];
     const ratingText =
       rating === undefined
@@ -33,7 +33,7 @@ export function fallbackPicks(input: LlmInput, priorities: Priorities): Recommen
         : `דירגת את ${PRIORITY_LABELS[candidate.give]} בחשיבות ${rating} מתוך ${MAX_PRIORITY}. `;
     return {
       compromiseId: candidate.compromiseId,
-      reason: `${ratingText}עם השינוי הזה ${rate}% מהעסקאות המתאימות נמכרו בתקציב (${fit} מתוך ${pool}).`,
+      reason: `${ratingText}עם השינוי הזה ${rate}% מהעסקאות המתאימות נמכרו בתקציב (${fit} מתוך ${pool})${now === undefined ? '' : `, לעומת ${now}% בחיפוש הנוכחי`}.`,
     };
   });
 }

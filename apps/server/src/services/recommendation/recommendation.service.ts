@@ -89,8 +89,10 @@ export class CompromiseRecommendationService {
     userId: number,
     compromises: readonly CompromiseDto[],
     priorities: Priorities,
+    /** Match rate of the current search (null: too few deals) – what the picks compare with. */
+    baselineRate: number | null = null,
   ): Promise<RecommendationDto> {
-    const input = buildLlmInput(compromises, priorities);
+    const input = buildLlmInput(compromises, priorities, baselineRate);
     const automatic = async (): Promise<RecommendationDto> => {
       return {
         picks: fallbackPicks(input, priorities),

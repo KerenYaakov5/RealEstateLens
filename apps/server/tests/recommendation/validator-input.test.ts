@@ -10,7 +10,7 @@ import { validateAnswer } from '../../src/services/recommendation/validator.js';
 import { COMPROMISES, GOOD_ANSWER } from './builders.js';
 
 const PRIORITIES = { budget: 3, parking: 1, rooms: 5 };
-const input = buildLlmInput(COMPROMISES, PRIORITIES);
+const input = buildLlmInput(COMPROMISES, PRIORITIES, 0.15);
 
 function answer(why: string, overrides: Record<string, unknown> = {}): string {
   return JSON.stringify({
@@ -20,13 +20,13 @@ function answer(why: string, overrides: Record<string, unknown> = {}): string {
 
 describe('buildLlmInput', () => {
   it('sends short ids, display-ready facts and only relevant priorities', () => {
-    const withNoise = buildLlmInput(COMPROMISES, { ...PRIORITIES, city: 4, elevator: 2 });
+    const withNoise = buildLlmInput(COMPROMISES, { ...PRIORITIES, city: 4, elevator: 2 }, 0.15);
 
     expect(withNoise.priorities).toEqual({ budget: 3, parking: 1, rooms: 5 });
     expect(withNoise.candidates.map((candidate) => candidate.ref)).toEqual(['c1', 'c2', 'c3']);
     expect(withNoise.candidates[0]?.facts).toEqual({
       rate: 50,
-      gain: 35,
+      now: 15,
       pool: 20,
       fit: 10,
       budget: 2_450_000,
@@ -36,18 +36,18 @@ describe('buildLlmInput', () => {
   });
 
   it('gives the same cache key when only irrelevant priorities differ', () => {
-    expect(cacheKeyOf(buildLlmInput(COMPROMISES, { ...PRIORITIES, city: 5 }))).toBe(
+    expect(cacheKeyOf(buildLlmInput(COMPROMISES, { ...PRIORITIES, city: 5 }, 0.15))).toBe(
       cacheKeyOf(input),
     );
-    expect(cacheKeyOf(buildLlmInput(COMPROMISES, { ...PRIORITIES, parking: 2 }))).not.toBe(
+    expect(cacheKeyOf(buildLlmInput(COMPROMISES, { ...PRIORITIES, parking: 2 }, 0.15))).not.toBe(
       cacheKeyOf(input),
     );
   });
 
   it('is not worth asking without a choice or without a relevant priority', () => {
     expect(isWorthAsking(input)).toBe(true);
-    expect(isWorthAsking(buildLlmInput(COMPROMISES.slice(0, 1), PRIORITIES))).toBe(false);
-    expect(isWorthAsking(buildLlmInput(COMPROMISES, { city: 5 }))).toBe(false);
+    expect(isWorthAsking(buildLlmInput(COMPROMISES.slice(0, 1), PRIORITIES, 0.15))).toBe(false);
+    expect(isWorthAsking(buildLlmInput(COMPROMISES, { city: 5 }, 0.15))).toBe(false);
   });
 });
 
@@ -134,12 +134,12 @@ describe('fallbackPicks', () => {
       'fewerRooms',
     ]);
     expect(picks[0]?.reason).toBe(
-      'דירגת את החניה בחשיבות 1 מתוך 5. עם השינוי הזה 40% מהעסקאות המתאימות נמכרו בתקציב (8 מתוך 20).',
+      'דירגת את החניה בחשיבות 1 מתוך 5. עם השינוי הזה 40% מהעסקאות המתאימות נמכרו בתקציב (8 מתוך 20), לעומת 15% בחיפוש הנוכחי.',
     );
   });
 
   it('keeps the improvement order when nothing is rated (or ratings are equal)', () => {
-    const unrated = buildLlmInput(COMPROMISES, {});
+    const unrated = buildLlmInput(COMPROMISES, {}, null);
 
     expect(fallbackPicks(unrated, {}).map((pick) => pick.compromiseId)).toEqual([
       'raiseBudget',

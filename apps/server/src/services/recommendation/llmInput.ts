@@ -26,14 +26,21 @@ function percent(share: number): number {
 }
 
 /** Short, display-ready facts. Keys are explained once in the (fixed) system prompt. */
-function factsOf(compromise: CompromiseDto): Record<string, FactValue> {
+function factsOf(
+  compromise: CompromiseDto,
+  baselineRate: number | null,
+): Record<string, FactValue> {
   const { feasibility, params } = compromise;
   const facts: Record<string, FactValue> = {
     rate: percent(feasibility.matchRate ?? 0),
-    gain: percent(compromise.delta),
     pool: feasibility.poolSize,
     fit: feasibility.affordableCount,
   };
+  // The current search's rate, to compare with ("לעומת X% בחיפוש הנוכחי"); absent when the
+  // current search has too few deals to say.
+  if (baselineRate !== null) {
+    facts.now = percent(baselineRate);
+  }
   if (params.rooms !== undefined) {
     facts.rooms = params.rooms;
   }
@@ -66,6 +73,7 @@ function factsOf(compromise: CompromiseDto): Record<string, FactValue> {
 export function buildLlmInput(
   compromises: readonly CompromiseDto[],
   priorities: Priorities,
+  baselineRate: number | null,
 ): LlmInput {
   const candidates = compromises
     .filter((compromise) => {
@@ -77,7 +85,7 @@ export function buildLlmInput(
         ref: `c${index + 1}`,
         compromiseId: compromise.id,
         give: priorityKeyOf(compromise),
-        facts: factsOf(compromise),
+        facts: factsOf(compromise, baselineRate),
       };
     });
   const relevant: Priorities = {};

@@ -54,7 +54,7 @@ const envSchema = z
     OPENAI_API_KEY: optionalString(z.string().min(1)),
     OPENAI_MODEL: z.string().min(1).default('gpt-5.4-nano'),
     LLM_TIMEOUT_MS: z.coerce.number().int().positive().default(8000),
-    LLM_MAX_OUTPUT_TOKENS: z.coerce.number().int().positive().default(300),
+    LLM_MAX_OUTPUT_TOKENS: z.coerce.number().int().positive().default(450),
     AI_DAILY_QUOTA: z.coerce.number().int().nonnegative().default(20),
     // Hard ceiling on model calls per day for all users together (cost cap).
     LLM_DAILY_CALL_LIMIT: z.coerce.number().int().nonnegative().default(300),

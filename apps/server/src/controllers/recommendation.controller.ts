@@ -36,7 +36,14 @@ export class RecommendationController {
         outcome.reason === 'unknown-city' ? 'העיר המבוקשת לא נמצאה' : 'השכונה לא נמצאה בעיר זו',
       );
     }
-    const compromises = outcome.status === 'ok' ? outcome.assessment.compromises : [];
-    res.json(await this.recommendations.recommend(req.user.id, compromises, body.priorities));
+    const assessment = outcome.status === 'ok' ? outcome.assessment : null;
+    res.json(
+      await this.recommendations.recommend(
+        req.user.id,
+        assessment?.compromises ?? [],
+        body.priorities,
+        assessment?.feasibility.matchRate ?? null,
+      ),
+    );
   };
 }
