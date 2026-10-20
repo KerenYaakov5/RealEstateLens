@@ -25,7 +25,9 @@ describe('matchText', () => {
     ['שבע', 'באר שבע', 'word'],
     ['herz', 'Herzliyya', 'prefix'],
     ['Herzlia', 'Herzliyya', 'fuzzy'],
-    ['פתח תקוה', 'פתח תקווה', 'fuzzy'],
+    ['פתח תקוה', 'פתח תקווה', 'exact'],
+    ['קרית', 'קריית גת', 'prefix'],
+    ['רמת גם', 'רמת גן', 'fuzzy'],
     ['רמת גנ', 'רמת גן', 'exact'],
   ] as const)('"%s" vs "%s" → %s', (query, candidate, expected) => {
     expect(kindOf(query, candidate)).toBe(expected);
@@ -34,6 +36,10 @@ describe('matchText', () => {
   it('does not match unrelated names', () => {
     expect(kindOf('חיפה', 'נתניה')).toBeNull();
     expect(kindOf('רמת השרון', 'רמת גן')).toBeNull();
+    // Several words: each one has to match, not just the first.
+    expect(kindOf('רמת גן', 'רמת מנשה')).toBeNull();
+    expect(kindOf('רמת גן', 'רמת הנשיא טראמפ')).toBeNull();
+    expect(kindOf('רמת ג', 'רמת השרון')).toBeNull();
   });
 
   it('ranks exact over prefix over word over fuzzy', () => {

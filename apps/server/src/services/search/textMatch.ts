@@ -28,12 +28,34 @@ const SCORES: Readonly<Record<MatchKind, number>> = {
 const FUZZY_MIN_LENGTH = 4;
 const FUZZY_THRESHOLD = 0.75;
 
-/** Search-only normalization: match key, final letters unified, Latin words translated. */
+/**
+ * Search-only normalization: match key, final letters unified, doubled yod/vav collapsed (the
+ * two common spellings "קרית"/"קריית", "תקוה"/"תקווה" become one), Latin words translated.
+ */
 export function searchKey(text: string): string {
-  const key = toMatchKey(cleanText(text) ?? '').replace(/[ךםןףץ]/g, (letter) => {
-    return FINAL_LETTERS[letter] ?? letter;
-  });
+  const key = toMatchKey(cleanText(text) ?? '')
+    .replace(/[ךםןףץ]/g, (letter) => {
+      return FINAL_LETTERS[letter] ?? letter;
+    })
+    .replace(/יי/g, 'י')
+    .replace(/וו/g, 'ו');
   return translateLatinTokens(key);
+}
+
+/**
+ * For a query of several words: every word must start a word of the name, or – for words of 3+
+ * letters – nearly do (a typo). Stops "רמת גן" from fuzzily matching "רמת מנשה" on "רמת" alone.
+ */
+function everyWordMatches(query: string, candidate: string): boolean {
+  const words = candidate.split(' ');
+  return query.split(' ').every((part) => {
+    return words.some((word) => {
+      if (word.startsWith(part)) {
+        return true;
+      }
+      return part.length >= 3 && similarity(part, word.slice(0, part.length)) >= FUZZY_THRESHOLD;
+    });
+  });
 }
 
 /**
@@ -63,8 +85,10 @@ export function matchText(query: string, candidate: string): TextMatch | null {
     const whole =
       maxSimilarity(query, candidate) >= FUZZY_THRESHOLD ? similarity(query, candidate) : 0;
     const startOfName = candidate.slice(0, query.length);
+    // Matching only the start of a longer name needs every typed word to fit a word in it.
+    const wordsFit = !query.includes(' ') || everyWordMatches(query, candidate);
     const start =
-      whole < 1 && maxSimilarity(query, startOfName) >= FUZZY_THRESHOLD
+      whole < 1 && wordsFit && maxSimilarity(query, startOfName) >= FUZZY_THRESHOLD
         ? similarity(query, startOfName)
         : 0;
     const best = Math.max(whole, start);

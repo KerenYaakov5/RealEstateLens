@@ -21,6 +21,12 @@ export interface NeighborhoodSearchHit {
   match: TextMatch;
 }
 
+/**
+ * CBS statistical areas, not places to live in: "אזור רמת גן של"ש", "רמת מנשה מ"א 13". Kept in the
+ * data (they are official records) but never offered in search.
+ */
+const STATISTICAL_AREA = /של["״]ש|מ["״]א\s*\d/;
+
 /** Cities (status 0) before local councils (99) before other localities. */
 function municipalRank(status: number | null): number {
   if (status === 0) {
@@ -46,6 +52,9 @@ export function searchCities(
   const counts = market.indexes.dealCountByCity;
   const hits: CitySearchHit[] = [];
   for (const city of market.cities.values()) {
+    if (STATISTICAL_AREA.test(city.nameHe)) {
+      continue;
+    }
     const match = bestMatch(key, market.searchNames.get(city.key) ?? []);
     if (match !== null) {
       hits.push({ city, dealCount: counts.get(city.key) ?? 0, match });
