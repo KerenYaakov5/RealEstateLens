@@ -64,6 +64,19 @@ describe('validateAnswer', () => {
     });
   });
 
+  it('adds thousands separators to amounts copied without them', () => {
+    const result = validateAnswer(
+      answer('דירגת את החניה בחשיבות 1; תקציב 2450000 ₪ ו-50% בתקציב.', {
+        id: 'c1',
+        facts: ['budget', 'rate'],
+        pri: ['parking'],
+      }),
+      input,
+    );
+
+    expect(result.ok && result.picks[0]?.reason).toContain('2,450,000 ₪');
+  });
+
   it('rejects broken JSON and schema mismatches', () => {
     expect(validateAnswer('{"picks": [', input).ok).toBe(false);
     expect(validateAnswer('{"picks": []}', input).ok).toBe(false);

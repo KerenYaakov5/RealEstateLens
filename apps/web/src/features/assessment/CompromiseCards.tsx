@@ -1,4 +1,5 @@
 import type { CompromiseDto, RecommendationDto } from '@rel/shared';
+import { withIsolatedNumbers } from '../../lib/bidi';
 import { formatPercent, formatPoints } from '../../lib/format';
 import { compromiseTitle } from './labels';
 
@@ -84,7 +85,9 @@ export function CompromiseCards({ compromises, recommendation, onApply }: Compro
                 על סמך <span className="num">{compromise.feasibility.poolSize}</span> עסקאות
               </span>
               {reason !== null && (
-                <span className="mt-2 block text-sm text-ink-soft">{reason}</span>
+                <span className="mt-2 block text-sm text-ink-soft">
+                  {withIsolatedNumbers(reason)}
+                </span>
               )}
               <span className="mt-3 block text-sm font-medium text-brand transition sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-visible:opacity-100">
                 להחיל את השינוי ←

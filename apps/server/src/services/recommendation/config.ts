@@ -3,10 +3,12 @@
  * must bump PROMPT_VERSION – it is part of the cache key, so old answers stop being served.
  */
 export const RECOMMENDATION_CONFIG = {
-  promptVersion: 1,
+  promptVersion: 4,
   /** Only the best candidates (by improvement) are sent – fewer input tokens, same top picks. */
   maxCandidates: 6,
   maxPicks: 3,
+  /** What the prompt asks for; the validator allows some slack up to maxReasonLength. */
+  reasonTargetLength: 120,
   maxReasonLength: 160,
   /** Validated model answers kept in memory (the database keeps all of them). */
   memoryCacheEntries: 1000,
@@ -41,5 +43,10 @@ export const RECOMMENDATION_CONFIG = {
     'בטיחות',
     'ביטחון',
     'אווירה',
+    // Our numbers describe past deals, not the odds of finding an apartment or the market.
+    'סיכוי',
+    'הצלחה',
+    'היצע',
+    'ביקוש',
   ],
 } as const;

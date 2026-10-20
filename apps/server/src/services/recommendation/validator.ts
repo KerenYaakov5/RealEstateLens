@@ -22,6 +22,13 @@ const answerSchema = z.object({
     .max(RECOMMENDATION_CONFIG.maxPicks),
 });
 
+/** Large amounts the model copied without separators: "3889710" → "3,889,710". */
+function withThousandsSeparators(text: string): string {
+  return text.replace(/\d{5,}/g, (digits) => {
+    return Number(digits).toLocaleString('en-US');
+  });
+}
+
 /** "2,450,000" → 2450000, "41.5" → 41.5 */
 function numbersIn(text: string): number[] {
   return (text.match(/\d[\d,]*(?:\.\d+)?/g) ?? []).map((match) => {
@@ -120,7 +127,7 @@ export function validateAnswer(text: string, input: LlmInput): ValidationResult 
     if (pickErrors.length > 0) {
       errors.push(...pickErrors);
     } else {
-      picks.push({ compromiseId: candidate.compromiseId, reason: why });
+      picks.push({ compromiseId: candidate.compromiseId, reason: withThousandsSeparators(why) });
     }
   }
   return errors.length === 0 ? { ok: true, picks } : { ok: false, errors };

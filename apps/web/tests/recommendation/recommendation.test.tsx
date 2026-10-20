@@ -60,9 +60,7 @@ describe('CompromiseCards', () => {
     const items = screen.getAllByRole('listitem');
     expect(items).toHaveLength(2);
     expect(within(items[0] as HTMLElement).getByText('לוותר על חניה')).toBeInTheDocument();
-    expect(
-      within(items[0] as HTMLElement).getByText('דירגת את החניה בחשיבות 1.'),
-    ).toBeInTheDocument();
+    expect(items[0]).toHaveTextContent('דירגת את החניה בחשיבות 1.');
     expect(screen.getByText('המלצה אישית')).toBeInTheDocument();
   });
 
