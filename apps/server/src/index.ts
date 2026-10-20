@@ -10,6 +10,8 @@ import { CITY_REFERENCES } from './data/cities.js';
 import { createDatabase } from './db/client.js';
 import { ensureSeeded } from './import/seedService.js';
 import { logger } from './lib/logger.js';
+import { logSink } from './lib/logSink.js';
+import { AppLogRepository } from './repositories/appLog.repository.js';
 import { AiCacheRepository } from './repositories/aiCache.repository.js';
 import { AiUsageRepository } from './repositories/aiUsage.repository.js';
 import { CityRepository } from './repositories/city.repository.js';
@@ -36,6 +38,24 @@ const database = createDatabase({
 async function start(): Promise<void> {
   logger.info({ database: database.kind }, 'Applying database migrations');
   await database.migrate();
+
+  // From here on every log line is also kept for the administrator's log screen.
+  const appLogs = new AppLogRepository(database.db);
+  logSink.attach(appLogs);
+  const pruneLogs = (): void => {
+    appLogs
+      .deleteOlderThan(env.LOG_RETENTION_DAYS)
+      .then((deleted) => {
+        if (deleted > 0) {
+          logger.info({ deleted, days: env.LOG_RETENTION_DAYS }, 'Old log entries removed');
+        }
+      })
+      .catch((err: unknown) => {
+        logger.warn({ err }, 'Log retention cleanup failed');
+      });
+  };
+  pruneLogs();
+  setInterval(pruneLogs, 6 * 3_600_000).unref();
   await ensureSeeded({ db: database.db, filePath: env.SEED_FILE_PATH, logger });
 
   // Reference data changes with the code (e.g. new aliases or CBS codes), not only with a seed,
@@ -120,6 +140,7 @@ async function start(): Promise<void> {
     users: userRepository,
     registrationCodes: new RegistrationCodeRepository(database.db),
     registrationCodeVault: new RegistrationCodeVault(env.JWT_SECRET),
+    appLogs,
     marketData,
     recommendations,
     options: {
@@ -139,9 +160,12 @@ async function start(): Promise<void> {
   const shutdown = (signal: string): void => {
     logger.info({ signal }, 'Shutting down');
     server.close(() => {
-      void database.close().finally(() => {
-        process.exit(0);
-      });
+      void logSink
+        .close()
+        .then(() => database.close())
+        .finally(() => {
+          process.exit(0);
+        });
     });
   };
   process.on('SIGINT', shutdown);

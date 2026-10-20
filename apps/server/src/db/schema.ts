@@ -1,5 +1,6 @@
 import { DEAL_SOURCES, PROPERTY_CONDITIONS, PROPERTY_TYPES } from '@rel/shared';
 import {
+  bigint,
   boolean,
   date,
   doublePrecision,
@@ -237,4 +238,34 @@ export const aiUsage = pgTable(
     outputTokens: integer('output_tokens').notNull().default(0),
   },
   (table) => [primaryKey({ columns: [table.userId, table.day] })],
+);
+
+/**
+ * Everything the server logs (requests, AI calls and cache hits, logins, admin actions,
+ * errors), kept for LOG_RETENTION_DAYS so the administrator can see what happened.
+ */
+export const appLogs = pgTable(
+  'app_logs',
+  {
+    id: bigint('id', { mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
+    /** debug | info | warn | error | fatal */
+    level: text('level').notNull(),
+    /** request | ai | auth | admin | system */
+    category: text('category').notNull(),
+    message: text('message').notNull(),
+    requestId: text('request_id'),
+    userId: integer('user_id'),
+    method: text('method'),
+    path: text('path'),
+    status: integer('status'),
+    durationMs: integer('duration_ms'),
+    /** The rest of the log line (sensitive values are already redacted). */
+    details: jsonb('details').$type<Record<string, unknown>>(),
+  },
+  (table) => [
+    index('app_logs_created_idx').on(table.createdAt),
+    index('app_logs_category_created_idx').on(table.category, table.createdAt),
+    index('app_logs_user_idx').on(table.userId),
+  ],
 );

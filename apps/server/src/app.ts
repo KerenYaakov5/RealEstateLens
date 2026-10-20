@@ -24,7 +24,12 @@ import {
 } from './routes/market.routes.js';
 import { createRecommendationRouter } from './routes/recommendation.routes.js';
 import { createSessionRouter } from './routes/session.routes.js';
-import { createRegistrationCodeRouter, createUserRouter } from './routes/user.routes.js';
+import {
+  createLogRouter,
+  createRegistrationCodeRouter,
+  createUserRouter,
+} from './routes/user.routes.js';
+import type { AppLogRepository } from './repositories/appLog.repository.js';
 import type { RegistrationCodeRepository } from './repositories/registrationCode.repository.js';
 import type { UserRepository } from './repositories/user.repository.js';
 import type { AuthService } from './services/auth.service.js';
@@ -55,6 +60,7 @@ export interface AppDeps {
   users: UserRepository;
   registrationCodes: RegistrationCodeRepository;
   registrationCodeVault: RegistrationCodeVault;
+  appLogs: AppLogRepository;
   options: AppOptions;
 }
 
@@ -84,6 +90,10 @@ export function createApp(deps: AppDeps): Express {
         const id = typeof incoming === 'string' && incoming.length > 0 ? incoming : randomUUID();
         res.setHeader('x-request-id', id);
         return id;
+      },
+      // Who made the request (set by requireAuth; read when the request completes).
+      customProps: (req) => {
+        return req.user === undefined ? {} : { userId: req.user.id };
       },
     }),
   );
@@ -117,9 +127,11 @@ export function createApp(deps: AppDeps): Express {
     deps.registrationCodeVault,
     deps.users,
     deps.auth,
+    deps.appLogs,
   );
   api.use('/users', createUserRouter(deps.recommendations, admin));
   api.use('/registration-code', createRegistrationCodeRouter(admin));
+  api.use('/logs', createLogRouter(admin));
   const market = new MarketController(deps.marketData);
   api.use('/cities', createCityRouter(market));
   api.use('/deals', createDealRouter(market));

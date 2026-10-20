@@ -10,6 +10,7 @@ import { seedDeals } from '../../src/import/seedService.js';
 import { logger } from '../../src/lib/logger.js';
 import { AiCacheRepository } from '../../src/repositories/aiCache.repository.js';
 import { AiUsageRepository } from '../../src/repositories/aiUsage.repository.js';
+import { AppLogRepository } from '../../src/repositories/appLog.repository.js';
 import { CityRepository } from '../../src/repositories/city.repository.js';
 import { RegistrationCodeRepository } from '../../src/repositories/registrationCode.repository.js';
 import { DealRepository } from '../../src/repositories/deal.repository.js';
@@ -106,6 +107,7 @@ export async function createTestApp(setup: TestAppSetup = {}): Promise<TestApp> 
     users,
     registrationCodes: new RegistrationCodeRepository(handle.db),
     registrationCodeVault: new RegistrationCodeVault(TEST_SECRET),
+    appLogs: new AppLogRepository(handle.db),
     marketData,
     recommendations,
     options: {

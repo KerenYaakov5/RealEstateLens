@@ -18,6 +18,8 @@ const envSchema = z
   .object({
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
     PORT: z.coerce.number().int().positive().default(3000),
+    // Days the administrator's log screen keeps entries (app_logs).
+    LOG_RETENTION_DAYS: z.coerce.number().int().positive().default(30),
     LOG_LEVEL: z
       .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
       .default('info'),

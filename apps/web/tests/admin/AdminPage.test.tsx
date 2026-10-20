@@ -58,7 +58,7 @@ function renderPage() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={client}>
-      <AdminPage />
+      <AdminPage hash="#/admin" />
     </QueryClientProvider>,
   );
 }

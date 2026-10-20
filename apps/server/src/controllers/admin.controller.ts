@@ -1,4 +1,11 @@
-import { updateUserSchema, type AdminUserDto, type RegistrationCodeDto } from '@rel/shared';
+import {
+  logQuerySchema,
+  updateUserSchema,
+  type AdminUserDto,
+  type LogCategory,
+  type LogPageDto,
+  type RegistrationCodeDto,
+} from '@rel/shared';
 import type { RequestHandler } from 'express';
 import { z } from 'zod';
 import { AppError } from '../errors/AppError.js';
@@ -7,6 +14,7 @@ import type {
   RegistrationCodeRepository,
 } from '../repositories/registrationCode.repository.js';
 import { israelDay } from '../lib/time.js';
+import type { AppLogRepository } from '../repositories/appLog.repository.js';
 import type { UserRepository } from '../repositories/user.repository.js';
 import type { AuthService } from '../services/auth.service.js';
 import {
@@ -25,6 +33,7 @@ export class AdminController {
     private readonly vault: RegistrationCodeVault,
     private readonly users: UserRepository,
     private readonly auth: AuthService,
+    private readonly logs: AppLogRepository,
   ) {}
 
   private toDto(row: RegistrationCodeRecord): RegistrationCodeDto | null {
@@ -71,6 +80,43 @@ export class AdminController {
     await this.registrationCodes.disable();
     req.log.info('Registration closed');
     res.status(204).end();
+  };
+
+  /** GET /logs – newest first, filtered; `nextBefore` pages to older entries. */
+  listLogs: RequestHandler = async (req, res) => {
+    const query = logQuerySchema.parse(req.query);
+    const rows = await this.logs.find({
+      ...(query.level === 'all'
+        ? {}
+        : { levels: query.level === 'warn' ? ['warn', 'error', 'fatal'] : ['error', 'fatal'] }),
+      ...(query.category === undefined ? {} : { category: query.category }),
+      ...(query.q === undefined ? {} : { text: query.q }),
+      ...(query.hours === undefined
+        ? {}
+        : { since: new Date(Date.now() - query.hours * 3_600_000) }),
+      ...(query.before === undefined ? {} : { beforeId: query.before }),
+      limit: query.pageSize,
+    });
+    const page: LogPageDto = {
+      data: rows.map((row) => {
+        return {
+          id: row.id,
+          time: row.createdAt.toISOString(),
+          level: row.level,
+          category: row.category as LogCategory,
+          message: row.message,
+          requestId: row.requestId,
+          userEmail: row.userEmail,
+          method: row.method,
+          path: row.path,
+          status: row.status,
+          durationMs: row.durationMs,
+          details: row.details,
+        };
+      }),
+      nextBefore: rows.length === query.pageSize ? (rows.at(-1)?.id ?? null) : null,
+    };
+    res.json(page);
   };
 
   /** GET /users */

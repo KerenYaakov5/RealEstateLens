@@ -2,6 +2,7 @@ import type { AdminUserDto, RegistrationCodeDto } from '@rel/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import { deleteResource, getJson, patchJson, postJson } from '../../api/client';
+import { LogsTab } from './LogsTab';
 
 const CODE_KEY = ['admin', 'registrationCode'] as const;
 const USERS_KEY = ['admin', 'users'] as const;
@@ -282,13 +283,45 @@ function Users() {
   );
 }
 
-/** For administrators: the registration code and who can use the system. */
-export function AdminPage() {
+export const ADMIN_TABS = [
+  { hash: '#/admin', label: 'קוד ומשתמשים' },
+  { hash: '#/admin/logs', label: 'לוגים' },
+] as const;
+
+/** For administrators: the registration code, who can use the system, and the logs. */
+export function AdminPage({ hash }: { hash: string }) {
+  const onLogs = hash === '#/admin/logs';
   return (
-    <main className="mx-auto max-w-4xl space-y-6 px-4 py-6">
+    <main className="mx-auto max-w-5xl space-y-6 px-4 py-6">
       <h1 className="text-2xl font-extrabold">ניהול</h1>
-      <RegistrationCode />
-      <Users />
+      <nav
+        aria-label="לשוניות ניהול"
+        className="flex gap-1 rounded-xl bg-sand p-1 text-sm font-medium"
+      >
+        {ADMIN_TABS.map((tab) => {
+          const current = tab.hash === (onLogs ? '#/admin/logs' : '#/admin');
+          return (
+            <a
+              key={tab.hash}
+              href={tab.hash}
+              aria-current={current ? 'page' : undefined}
+              className={`flex-1 rounded-lg px-3 py-1.5 text-center transition-colors ${
+                current ? 'bg-surface text-ink shadow-sm' : 'text-ink-soft hover:text-ink'
+              }`}
+            >
+              {tab.label}
+            </a>
+          );
+        })}
+      </nav>
+      {onLogs ? (
+        <LogsTab />
+      ) : (
+        <>
+          <RegistrationCode />
+          <Users />
+        </>
+      )}
     </main>
   );
 }

@@ -89,22 +89,29 @@ export class CompromiseRecommendationService {
     baselineRate: number | null = null,
   ): Promise<RecommendationDto> {
     const input = buildLlmInput(compromises, priorities, baselineRate);
-    const automatic = async (): Promise<RecommendationDto> => {
+    const automatic = async (reason: string): Promise<RecommendationDto> => {
+      this.deps.logger.info({ userId, reason }, 'Automatic recommendation');
       return {
         picks: fallbackPicks(input, priorities),
         source: 'fallback',
         aiQuotaLeft: await this.quotaLeft(userId),
       };
     };
-    if (!this.deps.options.enabled || this.deps.providers.length === 0 || !isWorthAsking(input)) {
-      return automatic();
+    if (!this.deps.options.enabled) {
+      return automatic('disabled');
+    }
+    if (this.deps.providers.length === 0) {
+      return automatic('no-provider');
+    }
+    if (!isWorthAsking(input)) {
+      return automatic('nothing-to-choose');
     }
 
     const key = cacheKeyOf(input);
     const cached = await this.cached(key);
     if (cached !== undefined) {
       this.deps.logger.info(
-        { cache: 'hit', provider: cached.provider },
+        { userId, cache: 'hit', provider: cached.provider },
         'Recommendation from cache',
       );
       return { picks: cached.picks, source: 'cache', aiQuotaLeft: await this.quotaLeft(userId) };
@@ -120,7 +127,7 @@ export class CompromiseRecommendationService {
     }
 
     if (await this.overDailyCallLimit()) {
-      return automatic();
+      return automatic('daily-call-limit');
     }
 
     // Identical questions arriving together share one model call.
@@ -133,8 +140,9 @@ export class CompromiseRecommendationService {
     }
     const answer = await pending;
     if (answer.kind === 'fallback') {
-      return automatic();
+      return automatic('model-failed');
     }
+    this.deps.logger.info({ userId, picks: answer.picks.length }, 'Recommendation from model');
     // Read again: a request that joined someone else's in-flight call was not charged.
     return { picks: answer.picks, source: 'llm', aiQuotaLeft: await this.quotaLeft(userId) };
   }
@@ -203,7 +211,7 @@ export class CompromiseRecommendationService {
         return result.picks;
       }
       this.deps.logger.warn(
-        { provider: provider.name, attempt, errors: result.errors },
+        { userId, provider: provider.name, attempt, errors: result.errors },
         'LLM answer rejected by validator',
       );
       messages.push(
@@ -232,6 +240,7 @@ export class CompromiseRecommendationService {
       });
       this.deps.logger.info(
         {
+          userId,
           provider: provider.name,
           model: provider.model,
           attempt,
@@ -253,6 +262,7 @@ export class CompromiseRecommendationService {
     } catch (err) {
       this.deps.logger.warn(
         {
+          userId,
           provider: provider.name,
           model: provider.model,
           attempt,

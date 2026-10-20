@@ -1,7 +1,8 @@
-import type { AdminUserDto, RegistrationCodeDto } from '@rel/shared';
+import type { AdminUserDto, LogPageDto, RegistrationCodeDto } from '@rel/shared';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { registrationCodes } from '../../src/db/schema.js';
+import { AppLogRepository } from '../../src/repositories/appLog.repository.js';
 import { hashPassword } from '../../src/services/auth.service.js';
 import {
   generateRegistrationCode,
@@ -213,4 +214,72 @@ describe('registration rate limit', () => {
       await limited.close();
     }
   }, 60_000);
+});
+
+describe('GET /api/v1/logs – the log screen for administrators', () => {
+  async function seedLogs() {
+    const now = Date.now();
+    const row = (minutesAgo: number, fields: object) => {
+      return {
+        createdAt: new Date(now - minutesAgo * 60_000),
+        level: 'info',
+        category: 'request' as const,
+        message: 'request completed',
+        requestId: null,
+        userId: null,
+        method: 'GET',
+        path: '/api/v1/cities',
+        status: 200,
+        durationMs: 5,
+        details: null,
+        ...fields,
+      };
+    };
+    await new AppLogRepository(testApp.handle.db).insert([
+      row(300, { message: 'old one' }),
+      row(5, { category: 'ai', message: 'LLM call', details: { provider: 'gemini' } }),
+      row(4, { level: 'warn', category: 'ai', message: 'LLM call failed' }),
+      row(3, { level: 'error', category: 'system', message: 'Unhandled error' }),
+      row(2, { path: '/api/v1/market-assessments?cityId=9' }),
+    ]);
+  }
+
+  it('is for administrators only', async () => {
+    expect((await request(testApp.app).get('/api/v1/logs')).status).toBe(401);
+    expect((await request(testApp.app).get('/api/v1/logs').set('cookie', userCookie)).status).toBe(
+      403,
+    );
+  });
+
+  it('filters by level, category, text and time, newest first, with paging', async () => {
+    await seedLogs();
+    const page = async (query: string) => {
+      return (await asAdmin('get', `/logs?${query}`)).body as LogPageDto;
+    };
+
+    expect((await page('level=error')).data.map((e) => e.message)).toEqual(['Unhandled error']);
+    expect((await page('level=warn')).data.map((e) => e.message)).toEqual([
+      'Unhandled error',
+      'LLM call failed',
+    ]);
+    expect((await page('category=ai')).data.map((e) => e.message)).toEqual([
+      'LLM call failed',
+      'LLM call',
+    ]);
+    expect((await page('q=gemini')).data.map((e) => e.message)).toEqual(['LLM call']);
+    expect((await page('q=cityId%3D9')).data).toHaveLength(1);
+    expect((await page('hours=1&category=request')).data.some((e) => e.message === 'old one')).toBe(
+      false,
+    );
+
+    const first = await page('pageSize=2');
+    expect(first.data).toHaveLength(2);
+    expect(first.nextBefore).toBe(first.data[1]?.id);
+    const second = await page(`pageSize=2&before=${first.nextBefore ?? 0}`);
+    expect(second.data[0]?.id).toBeLessThan(first.data[1]?.id ?? 0);
+  });
+
+  it('rejects unknown filters', async () => {
+    expect((await asAdmin('get', '/logs?category=nope')).status).toBe(400);
+  });
 });

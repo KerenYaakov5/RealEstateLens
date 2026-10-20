@@ -29,6 +29,12 @@ export function createUserRouter(
   return router;
 }
 
+export function createLogRouter(admin: AdminController): Router {
+  const router = Router();
+  router.get('/', requireAdmin, admin.listLogs);
+  return router;
+}
+
 export function createRegistrationCodeRouter(admin: AdminController): Router {
   const router = Router();
   router.use(requireAdmin);

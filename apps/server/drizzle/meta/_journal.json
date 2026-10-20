@@ -78,6 +78,13 @@
       "when": 1792521021950,
       "tag": "0010_registration_code",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792522614029,
+      "tag": "0011_app_logs",
+      "breakpoints": true
     }
   ]
 }

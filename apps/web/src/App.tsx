@@ -103,11 +103,11 @@ export function App() {
       />
     );
   }
-  const onAdmin = hash === ADMIN_HASH && session.data.isAdmin === true;
+  const onAdmin = hash.startsWith(ADMIN_HASH) && session.data.isAdmin === true;
   return (
     <>
       <AppHeader user={session.data} onAdmin={onAdmin} />
-      {onAdmin ? <AdminPage /> : <MainScreen />}
+      {onAdmin ? <AdminPage hash={hash} /> : <MainScreen />}
     </>
   );
 }

@@ -37,3 +37,44 @@ export interface AdminUserDto {
   /** Personal recommendations used today. */
   aiRecommendationsToday: number;
 }
+
+export const LOG_CATEGORIES = ['request', 'ai', 'auth', 'admin', 'system'] as const;
+export type LogCategory = (typeof LOG_CATEGORIES)[number];
+
+/** GET /logs (admin): newest first; page with `before` = the last id of the previous page. */
+export const logQuerySchema = z.object({
+  /** warn = warnings and errors; error = errors only. */
+  level: z.enum(['all', 'warn', 'error']).default('all'),
+  category: z.enum(LOG_CATEGORIES).optional(),
+  q: z.string().trim().min(1).max(100).optional(),
+  /** Only the last N hours. */
+  hours: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(24 * 90)
+    .optional(),
+  before: z.coerce.number().int().positive().optional(),
+  pageSize: z.coerce.number().int().min(1).max(200).default(50),
+});
+
+export interface LogEntryDto {
+  id: number;
+  time: string;
+  level: string;
+  category: LogCategory;
+  message: string;
+  requestId: string | null;
+  userEmail: string | null;
+  method: string | null;
+  path: string | null;
+  status: number | null;
+  durationMs: number | null;
+  details: Record<string, unknown> | null;
+}
+
+export interface LogPageDto {
+  data: LogEntryDto[];
+  /** Pass as `before` for the next (older) page; null when there is nothing older. */
+  nextBefore: number | null;
+}

@@ -52,7 +52,8 @@ export class SessionController {
   };
 
   /** DELETE /sessions/current – log out (idempotent). */
-  destroy: RequestHandler = (_req, res) => {
+  destroy: RequestHandler = (req, res) => {
+    req.log.info('User logged out');
     res.clearCookie(SESSION_COOKIE, this.cookieOptions());
     res.status(204).end();
   };
