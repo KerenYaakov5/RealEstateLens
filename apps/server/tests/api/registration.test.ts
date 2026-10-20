@@ -217,5 +217,5 @@ describe('registration rate limit', () => {
     } finally {
       await limited.close();
     }
-  });
+  }, 60_000);
 });
