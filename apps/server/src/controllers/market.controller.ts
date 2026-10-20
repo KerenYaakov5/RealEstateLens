@@ -1,7 +1,7 @@
 import {
   dealsQuerySchema,
   placeSearchQuerySchema,
-  roundUpToBudgetStep,
+  roundUpToBudgetScale,
   type CityListDto,
   type CitySearchResultDto,
   type NeighborhoodSearchResultDto,
@@ -42,7 +42,7 @@ export class MarketController {
       }, 0);
       const body: CityListDto = {
         data: listCities(market),
-        meta: { budgetMax: roundUpToBudgetStep(highest) },
+        meta: { budgetMax: roundUpToBudgetScale(highest) },
       };
       res.json(body);
       return;

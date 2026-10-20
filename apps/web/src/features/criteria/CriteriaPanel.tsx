@@ -1,4 +1,10 @@
-import { FEATURE_LABELS, FEATURES, PROPERTY_TYPES, type PropertyType } from '@rel/shared';
+import {
+  budgetScale,
+  FEATURE_LABELS,
+  FEATURES,
+  PROPERTY_TYPES,
+  type PropertyType,
+} from '@rel/shared';
 import { useId, useRef, type Dispatch } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { CITY_LIST_KEY, fetchCityList, searchCities, searchNeighborhoods } from '../../api/places';
@@ -56,7 +62,16 @@ export function CriteriaPanel({ state, dispatch, onReset }: CriteriaPanelProps) 
     },
     staleTime: 10 * 60_000,
   });
-  const budgetMax = Math.max(cityList.data?.budgetMax ?? BUDGET.fallbackMax, state.maxPrice);
+  // The slider moves over the points of the tiered scale, not over shekels.
+  const budgets = budgetScale(
+    Math.max(cityList.data?.budgetMax ?? BUDGET.fallbackMax, state.maxPrice),
+  );
+  const budgetIndex = Math.max(
+    0,
+    budgets.findIndex((value) => {
+      return value >= state.maxPrice;
+    }),
+  );
 
   return (
     <section
@@ -110,13 +125,16 @@ export function CriteriaPanel({ state, dispatch, onReset }: CriteriaPanelProps) 
         <input
           id="budget"
           type="range"
-          min={BUDGET.min}
-          max={budgetMax}
-          step={BUDGET.step}
-          value={state.maxPrice}
+          min={0}
+          max={budgets.length - 1}
+          step={1}
+          value={budgetIndex}
           aria-valuetext={formatPriceShort(state.maxPrice)}
           onChange={(event) => {
-            dispatch({ type: 'setMaxPrice', maxPrice: Number(event.target.value) });
+            const value = budgets[Number(event.target.value)];
+            if (value !== undefined) {
+              dispatch({ type: 'setMaxPrice', maxPrice: value });
+            }
           }}
           className="w-full accent-brand"
         />

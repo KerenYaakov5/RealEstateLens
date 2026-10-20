@@ -1,5 +1,5 @@
 import {
-  BUDGET_STEP,
+  roundUpToBudgetScale,
   type CityDto,
   type CityListDto,
   type DealDto,
@@ -55,9 +55,8 @@ describe('GET /api/v1/cities', () => {
       .body as Page<DealDto>;
     const highest = Math.max(...deals.data.map((deal) => deal.adjustedPriceNis));
 
-    expect(body.meta.budgetMax % BUDGET_STEP).toBe(0);
+    expect(body.meta.budgetMax).toBe(roundUpToBudgetScale(highest));
     expect(body.meta.budgetMax).toBeGreaterThanOrEqual(highest);
-    expect(body.meta.budgetMax - highest).toBeLessThan(BUDGET_STEP);
   });
 
   it('allows short private caching and conditional requests', async () => {

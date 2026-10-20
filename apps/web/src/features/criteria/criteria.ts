@@ -1,8 +1,8 @@
 import {
   BUDGET_MIN,
-  BUDGET_STEP,
+  nearestOnBudgetScale,
   FEATURES,
-  roundUpToBudgetStep,
+  roundUpToBudgetScale,
   type AssessmentRequest,
   type CompromiseDto,
   type Feature,
@@ -43,12 +43,12 @@ export function roomsChoiceLabel(rooms: number): string {
 }
 
 /**
- * The budget slider. Its upper end comes from the data (GET /cities → meta.budgetMax);
- * `fallbackMax` is used until that arrives, `hardMax` only guards stored values.
+ * The budget slider (a tiered scale, see budgetScale). Its upper end comes from the data
+ * (GET /cities → meta.budgetMax); `fallbackMax` is used until that arrives, `hardMax` only
+ * guards stored values.
  */
 export const BUDGET = {
   min: BUDGET_MIN,
-  step: BUDGET_STEP,
   fallbackMax: 15_000_000,
   hardMax: 100_000_000,
 } as const;
@@ -76,10 +76,9 @@ export type CriteriaAction =
   | { type: 'applyCompromise'; compromise: CompromiseDto }
   | { type: 'reset' };
 
-/** On the slider's scale: a whole step, within range. */
+/** On the slider's scale, within range. */
 function clampBudget(value: number): number {
-  const stepped = Math.round(value / BUDGET.step) * BUDGET.step;
-  return Math.min(BUDGET.hardMax, Math.max(BUDGET.min, stepped));
+  return nearestOnBudgetScale(Math.min(BUDGET.hardMax, Math.max(BUDGET.min, value)));
 }
 
 /** What choosing a compromise card changes in the requirements. */
@@ -106,7 +105,10 @@ function applyCompromise(state: CriteriaState, compromise: CompromiseDto): Crite
     case 'raiseBudget':
       return params.newMaxPrice === undefined
         ? state
-        : { ...state, maxPrice: Math.min(BUDGET.hardMax, roundUpToBudgetStep(params.newMaxPrice)) };
+        : {
+            ...state,
+            maxPrice: Math.min(BUDGET.hardMax, roundUpToBudgetScale(params.newMaxPrice)),
+          };
   }
 }
 
@@ -175,7 +177,7 @@ const storedSchema = z.object({
       z.object({ kind: z.literal('text'), text: z.string().min(1).max(100) }),
     ])
     .nullable(),
-  // Budgets saved with an older, finer slider are moved to the nearest step.
+  // Budgets saved with an older, finer slider are moved to the nearest point on the scale.
   maxPrice: z.number().min(BUDGET.min).max(BUDGET.hardMax).transform(clampBudget),
   rooms: z.number().min(1).max(12).nullable(),
   propertyTypes: z.array(propertyTypeSchema),
