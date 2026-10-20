@@ -39,25 +39,17 @@ function Notices({ assessment }: { assessment: MarketAssessmentDto }) {
   );
 }
 
-/** "יש לנו 39 עסקאות עבר בחולון" – part of the results, never shown while typing a search. */
-function CityDeals({ cityId, cityName }: { cityId: number; cityName: string }) {
+/** How many deals we have in the city – shown in the feasibility card once results are in. */
+function useCityDealCount(cityId: number | undefined): number | undefined {
   const counts = useQuery({
     queryKey: ['cityDealCounts'],
     queryFn: ({ signal }) => {
       return cityDealCounts(signal);
     },
     staleTime: 10 * 60_000,
+    enabled: cityId !== undefined,
   });
-  const dealCount = counts.data?.get(cityId) ?? 0;
-  // A city without deals already gets a notice that says so.
-  if (dealCount === 0) {
-    return null;
-  }
-  return (
-    <p className="text-sm text-muted">
-      יש לנו <span className="num">{dealCount}</span> עסקאות עבר ב{cityName}
-    </p>
-  );
+  return cityId === undefined ? undefined : counts.data?.get(cityId);
 }
 
 function NearbyCities({
@@ -128,6 +120,7 @@ export function Results({
   const assessment = useAssessment(state);
   const personal = usePersonalRecommendation(state);
   const session = useSession();
+  const cityDealCount = useCityDealCount(assessment.data?.city.id);
 
   if (state.city === null) {
     return (
@@ -171,12 +164,11 @@ export function Results({
       className={`space-y-5 transition-opacity ${assessment.isPlaceholderData ? 'opacity-60' : ''}`}
       aria-busy={assessment.isFetching}
     >
-      <CityDeals cityId={data.city.id} cityName={data.city.name} />
       <Notices assessment={data} />
       <NearbyCities assessment={data} onChooseCity={onChooseCity} />
       {data.nearbyCitiesWithData.length === 0 && (
         <>
-          <FeasibilityCard assessment={data} />
+          <FeasibilityCard assessment={data} cityDealCount={cityDealCount} />
           <TypicalForBudget assessment={data} />
           <HouseCard
             parts={data.houseParts}

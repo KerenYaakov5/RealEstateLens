@@ -19,7 +19,13 @@ function rateTone(rate: number): string {
   return 'text-bad';
 }
 
-export function FeasibilityCard({ assessment }: { assessment: MarketAssessmentDto }) {
+interface FeasibilityCardProps {
+  assessment: MarketAssessmentDto;
+  /** All our deals in the city (any requirements, any price); undefined while unknown. */
+  cityDealCount?: number | undefined;
+}
+
+export function FeasibilityCard({ assessment, cityDealCount }: FeasibilityCardProps) {
   const { feasibility, cityLevel, referencePeriod, methodology } = assessment;
   const place =
     assessment.neighborhood === null
@@ -58,6 +64,14 @@ export function FeasibilityCard({ assessment }: { assessment: MarketAssessmentDt
           </p>
         </div>
       )}
+      {/* Only when it adds something: with no requirements the pool already is every deal. */}
+      {cityDealCount !== undefined &&
+        cityDealCount > 0 &&
+        cityDealCount !== feasibility.poolSize && (
+          <p className="mt-1 text-sm text-muted">
+            (מתוך <span className="num">{cityDealCount}</span> עסקאות עבר ב{assessment.city.name})
+          </p>
+        )}
 
       {feasibility.unknownCount > 0 && (
         <p className="mt-2 text-sm text-muted">
