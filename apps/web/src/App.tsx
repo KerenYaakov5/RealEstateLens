@@ -1,9 +1,14 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { LoginPage } from './auth/LoginPage';
-import { useLogout, useSession } from './auth/session';
+import { RegisterPage } from './auth/RegisterPage';
+import { useLogout, useSession, type SessionUser } from './auth/session';
+import { AdminPage } from './features/admin/AdminPage';
 import { MainScreen } from './features/MainScreen';
+import { useHash } from './lib/useHash';
 
-function AppHeader({ email }: { email: string }) {
+const ADMIN_HASH = '#/admin';
+
+function AppHeader({ user, onAdmin }: { user: SessionUser; onAdmin: boolean }) {
   const logout = useLogout();
   const confirmDialog = useRef<HTMLDialogElement>(null);
   return (
@@ -12,8 +17,16 @@ function AppHeader({ email }: { email: string }) {
         <span className="text-xl font-extrabold text-brand">RealEstateLens</span>
         <div className="flex items-center gap-3 text-sm">
           <span className="hidden text-muted sm:inline" dir="ltr">
-            {email}
+            {user.email}
           </span>
+          {user.isAdmin === true && (
+            <a
+              href={onAdmin ? '#' : ADMIN_HASH}
+              className="rounded-lg px-3 py-1.5 font-medium text-brand hover:bg-brand-soft"
+            >
+              {onAdmin ? 'חזרה לחיפוש' : 'ניהול'}
+            </a>
+          )}
           <button
             type="button"
             onClick={() => {
@@ -58,6 +71,8 @@ function AppHeader({ email }: { email: string }) {
 
 export function App() {
   const session = useSession();
+  const hash = useHash();
+  const [registering, setRegistering] = useState(false);
 
   if (session.isPending) {
     return (
@@ -74,12 +89,25 @@ export function App() {
     );
   }
   if (session.data === null) {
-    return <LoginPage />;
+    return registering ? (
+      <RegisterPage
+        onLogin={() => {
+          setRegistering(false);
+        }}
+      />
+    ) : (
+      <LoginPage
+        onRegister={() => {
+          setRegistering(true);
+        }}
+      />
+    );
   }
+  const onAdmin = hash === ADMIN_HASH && session.data.isAdmin === true;
   return (
     <>
-      <AppHeader email={session.data.email} />
-      <MainScreen />
+      <AppHeader user={session.data} onAdmin={onAdmin} />
+      {onAdmin ? <AdminPage /> : <MainScreen />}
     </>
   );
 }

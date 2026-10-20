@@ -66,6 +66,18 @@ export async function postJson<T>(path: string, body: unknown): Promise<T> {
   return (await response.json()) as T;
 }
 
+export async function patchJson<T>(path: string, body: unknown): Promise<T> {
+  const response = await send(path, {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    throw await toApiError(response);
+  }
+  return (await response.json()) as T;
+}
+
 export async function deleteResource(path: string): Promise<void> {
   const response = await send(path, { method: 'DELETE' });
   if (!response.ok && response.status !== 204) {

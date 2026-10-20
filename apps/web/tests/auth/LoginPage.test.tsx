@@ -8,7 +8,7 @@ function renderLogin() {
   const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
   render(
     <QueryClientProvider client={client}>
-      <LoginPage />
+      <LoginPage onRegister={() => undefined} />
     </QueryClientProvider>,
   );
   return client;

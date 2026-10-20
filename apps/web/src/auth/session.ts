@@ -3,6 +3,8 @@ import { ApiError, deleteResource, getJson, postJson } from '../api/client';
 
 export interface SessionUser {
   email: string;
+  /** May manage invite codes and users. */
+  isAdmin?: boolean;
   /** Personal recommendations left today (missing right after login until /users/me). */
   aiQuotaLeft?: number;
 }
@@ -28,6 +30,24 @@ export function useSession() {
 export interface Credentials {
   email: string;
   password: string;
+}
+
+export interface Registration extends Credentials {
+  inviteCode: string;
+}
+
+/** Registration with an invite code; the new user is logged in right away. */
+export function useRegister() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (registration: Registration) => {
+      return postJson<{ user: SessionUser }>('/users', registration);
+    },
+    onSuccess: (result) => {
+      queryClient.setQueryData(SESSION_KEY, result.user);
+      void queryClient.invalidateQueries({ queryKey: SESSION_KEY });
+    },
+  });
 }
 
 export function useLogin() {
