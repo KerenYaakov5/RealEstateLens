@@ -177,6 +177,7 @@ export function Results({
       {data.nearbyCitiesWithData.length === 0 && (
         <>
           <FeasibilityCard assessment={data} />
+          <TypicalForBudget assessment={data} />
           <HouseCard
             parts={data.houseParts}
             compromises={data.compromises}
@@ -199,7 +200,6 @@ export function Results({
             }
             onApply={onApplyCompromise}
           />
-          <TypicalForBudget assessment={data} />
           <ReferenceDeals deals={data.referenceDeals} />
         </>
       )}
