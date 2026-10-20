@@ -14,6 +14,11 @@ export const CONFIDENCE_LABELS: Readonly<Record<Confidence, string>> = {
   high: 'ביטחון גבוה',
 };
 
+/** "חדר אחד" / "2.5 חדרים". */
+export function roomsLabel(rooms: number): string {
+  return rooms === 1 ? 'חדר אחד' : `${rooms} חדרים`;
+}
+
 /** What a compromise changes, shown above its title. */
 export const COMPROMISE_CATEGORY: Readonly<Record<CompromiseDto['type'], string>> = {
   dropFeature: 'מאפיינים',
@@ -33,7 +38,7 @@ export function compromiseTitle(compromise: CompromiseDto): string {
         ? 'ויתור על דרישה'
         : `לוותר על ${FEATURE_LABELS[params.feature]}`;
     case 'fewerRooms':
-      return `${params.rooms ?? ''} חדרים`;
+      return params.rooms === undefined ? 'פחות חדרים' : roomsLabel(params.rooms);
     case 'anyNeighborhood':
       return 'כל השכונות בעיר';
     case 'otherNeighborhood':

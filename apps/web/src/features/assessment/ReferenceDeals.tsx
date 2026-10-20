@@ -1,18 +1,71 @@
 import { FEATURE_LABELS, FEATURES, type MarketAssessmentDto } from '@rel/shared';
 import { formatDate, formatPrice } from '../../lib/format';
-import { propertyTypeLabel } from './labels';
+import { propertyTypeLabel, roomsLabel } from './labels';
 
 type ReferenceDeal = MarketAssessmentDto['referenceDeals'][number];
 
-function featureList(deal: ReferenceDeal): string {
-  const present = FEATURES.filter((feature) => deal.features[feature] === true).map(
-    (feature) => FEATURE_LABELS[feature],
-  );
-  return present.length === 0 ? '—' : present.join(' · ');
-}
+/** Light pastel backgrounds, cycled so neighbouring cards are easy to tell apart. */
+const TINTS = [
+  'bg-brand-soft/60',
+  'bg-compromise-soft/70',
+  'bg-good-soft/70',
+  'bg-warn-soft/80',
+] as const;
 
 function placeOf(deal: ReferenceDeal): string {
   return deal.neighborhood === null ? deal.street : `${deal.street}, ${deal.neighborhood.name}`;
+}
+
+function floorText(deal: ReferenceDeal): string | null {
+  if (deal.floor === null) {
+    return null;
+  }
+  return deal.floor === 0 ? 'קומת קרקע' : `קומה ${deal.floor} מתוך ${deal.totalFloors}`;
+}
+
+function DealCard({ deal, tint }: { deal: ReferenceDeal; tint: string }) {
+  const features = FEATURES.filter((feature) => deal.features[feature] === true);
+  const floor = floorText(deal);
+  return (
+    <li className={`flex h-full flex-col rounded-xl p-4 ${tint}`}>
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+        <span className="text-lg font-extrabold">{formatPrice(deal.priceNis)}</span>
+        {deal.dealDate !== null && (
+          <span className="num text-xs text-muted">{formatDate(deal.dealDate)}</span>
+        )}
+      </div>
+      {deal.isAdjusted && deal.adjustedPriceNis !== deal.priceNis && (
+        <span className="text-xs text-ink-soft">היום כ-{formatPrice(deal.adjustedPriceNis)}</span>
+      )}
+
+      <p className="mt-2 font-medium">{placeOf(deal)}</p>
+      <p className="mt-0.5 text-sm text-ink-soft">
+        {propertyTypeLabel(deal.propertyType)} · {roomsLabel(deal.rooms)}
+        {deal.sizeSqm !== null && (
+          <>
+            {' '}
+            · <span className="num">{deal.sizeSqm}</span> מ"ר
+          </>
+        )}
+        {floor !== null && <> · {floor}</>}
+      </p>
+
+      {features.length > 0 && (
+        <ul className="mt-3 flex flex-wrap gap-1.5" aria-label="כולל">
+          {features.map((feature) => (
+            <li
+              key={feature}
+              className={`rounded-full bg-surface/80 px-2 py-0.5 text-xs ${
+                deal.matchedPreferences.includes(feature) ? 'font-bold text-brand-strong' : ''
+              }`}
+            >
+              {FEATURE_LABELS[feature]}
+            </li>
+          ))}
+        </ul>
+      )}
+    </li>
+  );
 }
 
 /** Real past deals that fit the requirements and the budget – the evidence behind the numbers. */
@@ -29,75 +82,11 @@ export function ReferenceDeals({ deals }: { deals: ReferenceDeal[] }) {
           לא נמצאו עסקאות עבר שנמכרו עם המאפיינים האלו בתקציב הזה.
         </p>
       ) : (
-        <>
-          {/* Desktop: a table */}
-          <table className="mt-4 hidden w-full text-sm md:table">
-            <thead className="text-start text-xs text-muted">
-              <tr>
-                <th className="pb-2 text-start font-medium">כתובת</th>
-                <th className="pb-2 text-start font-medium">סוג</th>
-                <th className="pb-2 text-start font-medium">חדרים</th>
-                <th className="pb-2 text-start font-medium">מ"ר</th>
-                <th className="pb-2 text-start font-medium">כולל</th>
-                <th className="pb-2 text-start font-medium">תאריך</th>
-                <th className="pb-2 text-start font-medium">מחיר</th>
-              </tr>
-            </thead>
-            <tbody>
-              {deals.map((deal) => (
-                <tr key={deal.id} className="border-t border-line">
-                  <td className="py-2">{placeOf(deal)}</td>
-                  <td className="py-2">{propertyTypeLabel(deal.propertyType)}</td>
-                  <td className="num py-2">{deal.rooms}</td>
-                  <td className="num py-2">{deal.sizeSqm ?? '—'}</td>
-                  <td className="py-2 text-xs">{featureList(deal)}</td>
-                  <td className="num py-2">
-                    {deal.dealDate === null ? '—' : formatDate(deal.dealDate)}
-                  </td>
-                  <td className="py-2">
-                    <span className="block font-bold">{formatPrice(deal.priceNis)}</span>
-                    {deal.isAdjusted && deal.adjustedPriceNis !== deal.priceNis && (
-                      <span className="block text-xs text-muted">
-                        היום כ-{formatPrice(deal.adjustedPriceNis)}
-                      </span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          {/* Mobile: cards */}
-          <ul className="mt-4 space-y-3 md:hidden">
-            {deals.map((deal) => (
-              <li key={deal.id} className="rounded-xl border border-line p-3">
-                <div className="flex items-baseline justify-between gap-2">
-                  <span className="font-medium">{placeOf(deal)}</span>
-                  <span className="font-bold">{formatPrice(deal.priceNis)}</span>
-                </div>
-                <p className="mt-1 text-sm text-ink-soft">
-                  {propertyTypeLabel(deal.propertyType)} · <span className="num">{deal.rooms}</span>{' '}
-                  חדרים
-                  {deal.sizeSqm !== null && (
-                    <>
-                      {' '}
-                      · <span className="num">{deal.sizeSqm}</span> מ"ר
-                    </>
-                  )}
-                </p>
-                <p className="mt-1 text-xs text-muted">
-                  {featureList(deal)}
-                  {deal.dealDate !== null && (
-                    <>
-                      {' '}
-                      · <span className="num">{formatDate(deal.dealDate)}</span>
-                    </>
-                  )}
-                </p>
-              </li>
-            ))}
-          </ul>
-        </>
+        <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+          {deals.map((deal, index) => (
+            <DealCard key={deal.id} deal={deal} tint={TINTS[index % TINTS.length] ?? TINTS[0]} />
+          ))}
+        </ul>
       )}
     </details>
   );

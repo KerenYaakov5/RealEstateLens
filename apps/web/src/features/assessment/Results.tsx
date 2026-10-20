@@ -182,19 +182,21 @@ export function Results({
             compromises={data.compromises}
             onApplyCompromise={onApplyCompromise}
           />
-          <PersonalizePanel
-            compromises={data.compromises}
-            priorities={priorities}
-            onChange={onChangePriorities}
-            onAsk={personal.ask}
-            isAsking={personal.isAsking}
-            error={personal.error?.message ?? null}
-            quotaLeft={session.data?.aiQuotaLeft}
-          />
           <CompromiseCards
             compromises={data.compromises}
             baselineRate={data.feasibility.matchRate}
             recommendation={personal.recommendation}
+            personalize={
+              <PersonalizePanel
+                compromises={data.compromises}
+                priorities={priorities}
+                onChange={onChangePriorities}
+                onAsk={personal.ask}
+                isAsking={personal.isAsking}
+                error={personal.error?.message ?? null}
+                quotaLeft={session.data?.aiQuotaLeft}
+              />
+            }
             onApply={onApplyCompromise}
           />
           <TypicalForBudget assessment={data} />

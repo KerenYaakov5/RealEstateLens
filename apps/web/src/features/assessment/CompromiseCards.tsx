@@ -1,4 +1,5 @@
 import type { CompromiseDto, RecommendationDto } from '@rel/shared';
+import type { ReactNode } from 'react';
 import { withIsolatedNumbers } from '../../lib/bidi';
 import { formatPercent } from '../../lib/format';
 import { COMPROMISE_CATEGORY, compromiseTitle } from './labels';
@@ -13,6 +14,8 @@ interface CompromiseCardsProps {
   /** Personal picks for the current requirements, or null for the default ranking. */
   recommendation: RecommendationDto | null;
   onApply: (compromise: CompromiseDto) => void;
+  /** The "order by what is easy for me to give up" control, shown under the heading. */
+  personalize?: ReactNode;
 }
 
 interface Card {
@@ -42,6 +45,7 @@ export function CompromiseCards({
   baselineRate,
   recommendation,
   onApply,
+  personalize,
 }: CompromiseCardsProps) {
   if (compromises.length === 0) {
     return null;
@@ -67,6 +71,7 @@ export function CompromiseCards({
           </span>
         )}
       </div>
+      {personalize !== undefined && <div className="mb-3">{personalize}</div>}
       <ul className="grid gap-3 sm:grid-cols-2">
         {cards.map(({ compromise, reason }) => (
           <li key={compromise.id}>

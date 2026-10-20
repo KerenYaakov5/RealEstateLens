@@ -123,7 +123,7 @@ describe('PersonalizePanel', () => {
         quotaLeft={5}
       />,
     );
-    await userEvent.click(screen.getByRole('button', { name: /התאם לי אישית/ }));
+    await userEvent.click(screen.getByRole('button', { name: /סדרו לפי מה שקל לי לוותר עליו/ }));
 
     const groups = screen.getAllByRole('radiogroup');
     expect(groups.map((group) => group.getAttribute('aria-labelledby') !== null)).toEqual([

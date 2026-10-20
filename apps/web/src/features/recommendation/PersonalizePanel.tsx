@@ -31,7 +31,7 @@ interface PersonalizePanelProps {
 }
 
 /**
- * "התאם לי אישית": the user rates how hard it is to give up each requirement that a compromise
+ * Personalization inside "על מה אפשר להתפשר?": the user rates how hard it is to give up each requirement that a compromise
  * would relax, then asks for a personal recommendation. Only those requirements are listed – rating
  * anything else could not change the answer.
  */
@@ -55,7 +55,7 @@ export function PersonalizePanel({
   };
 
   return (
-    <div className="rounded-(--radius-card) border border-brand/20 bg-brand-soft/60 p-4 shadow-(--shadow-card)">
+    <div className="rounded-xl border border-brand/20 bg-brand-soft/50 p-3">
       <button
         type="button"
         aria-expanded={open}
@@ -66,9 +66,9 @@ export function PersonalizePanel({
         className="flex w-full items-center justify-between gap-2 text-start font-bold text-brand"
       >
         <span>
-          <span className="block">✨ התאם לי אישית</span>
+          <span className="block">✨ סדרו לפי מה שקל לי לוותר עליו</span>
           <span className="block text-sm font-normal text-ink-soft">
-            סמנו על מה קל לכם לוותר, ונבחר את הפשרות שמתאימות לכם
+            התאמה אישית: הכרטיסים יסודרו לפי מה שחשוב לך, עם הסבר לכל אחד
           </span>
         </span>
         <span aria-hidden="true" className={`transition ${open ? 'rotate-180' : ''}`}>
