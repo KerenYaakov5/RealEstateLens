@@ -6,9 +6,9 @@ import type {
   RegistrationCodeRecord,
   RegistrationCodeRepository,
 } from '../repositories/registrationCode.repository.js';
+import { israelDay } from '../lib/time.js';
 import type { UserRepository } from '../repositories/user.repository.js';
 import type { AuthService } from '../services/auth.service.js';
-import { israelDay } from '../services/recommendation/recommendation.service.js';
 import {
   generateRegistrationCode,
   hashRegistrationCode,
@@ -48,12 +48,15 @@ export class AdminController {
 
   /** POST /registration-code – a new code; the previous one stops working at once. */
   replaceRegistrationCode: RequestHandler = async (req, res) => {
+    if (req.user === undefined) {
+      throw AppError.unauthorized();
+    }
     const code = generateRegistrationCode();
     const row = await this.registrationCodes.replace({
       codeHash: hashRegistrationCode(code),
       codeEncrypted: this.vault.encrypt(code),
       hint: registrationCodeHint(code),
-      createdByUserId: req.user?.id ?? 0,
+      createdByUserId: req.user.id,
     });
     req.log.info({ registrationCodeId: row.id }, 'Registration code replaced');
     res.status(201).json({

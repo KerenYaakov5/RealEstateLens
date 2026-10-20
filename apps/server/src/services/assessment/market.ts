@@ -14,6 +14,8 @@ export interface MarketIndexes {
   dealCountByCity: ReadonlyMap<string, number>;
   /** neighborhoodKey(cityKey, name) → deal count */
   dealCountByNeighborhood: ReadonlyMap<string, number>;
+  /** The highest price paid (in today's terms) – the budget slider's upper end. */
+  highestPrice: number;
 }
 
 /** Deals already priced in today's terms, plus places – what the engine and queries work on. */
@@ -39,7 +41,9 @@ function increment(counts: Map<string, number>, key: string): void {
 export function createPricedMarket(parts: MarketParts): PricedMarket {
   const dealCountByCity = new Map<string, number>();
   const dealCountByNeighborhood = new Map<string, number>();
+  let highestPrice = 0;
   for (const deal of parts.deals) {
+    highestPrice = Math.max(highestPrice, deal.adjustedPrice);
     increment(dealCountByCity, deal.cityKey);
     if (deal.neighborhood !== null) {
       increment(dealCountByNeighborhood, neighborhoodKey(deal.cityKey, deal.neighborhood));
@@ -68,6 +72,7 @@ export function createPricedMarket(parts: MarketParts): PricedMarket {
       ),
       dealCountByCity,
       dealCountByNeighborhood,
+      highestPrice,
     },
   };
 }

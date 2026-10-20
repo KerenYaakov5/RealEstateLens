@@ -1,4 +1,5 @@
 import type { CityListDto, CitySearchResultDto, NeighborhoodSearchResultDto } from '@rel/shared';
+import { useQuery } from '@tanstack/react-query';
 import type { AutocompleteOption } from '../components/Autocomplete';
 import { getJson } from './client';
 
@@ -29,14 +30,23 @@ export interface CityList {
   budgetMax: number | null;
 }
 
-export const CITY_LIST_KEY = ['cityList'] as const;
-
-export async function fetchCityList(signal: AbortSignal): Promise<CityList> {
+async function fetchCityList(signal: AbortSignal): Promise<CityList> {
   const body = await getJson<CityListDto>('/cities', signal);
   return {
     dealCounts: new Map((body?.data ?? []).map((city) => [city.id, city.dealCount] as const)),
     budgetMax: body?.meta.budgetMax ?? null,
   };
+}
+
+/** The city list changes only with the data; one fetch serves the whole app for a while. */
+export function useCityList() {
+  return useQuery({
+    queryKey: ['cityList'],
+    queryFn: ({ signal }) => {
+      return fetchCityList(signal);
+    },
+    staleTime: 10 * 60_000,
+  });
 }
 
 /** Neighborhoods we have deals for in one city (names only, like the city search). */

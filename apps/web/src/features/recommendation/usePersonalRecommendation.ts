@@ -3,6 +3,7 @@ import {
   toAssessmentQueryString,
   type Priorities,
   type RecommendationDto,
+  type RecommendationRequest,
 } from '@rel/shared';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
@@ -60,10 +61,8 @@ export function usePersonalRecommendation(state: CriteriaState) {
       if (request === null || currentQuery === null) {
         throw new Error('no city chosen');
       }
-      const result = await postJson<RecommendationDto>('/compromise-recommendations', {
-        criteria: request,
-        priorities,
-      });
+      const body: RecommendationRequest = { criteria: request, priorities };
+      const result = await postJson<RecommendationDto>('/compromise-recommendations', body);
       return { forQuery: currentQuery, result };
     },
     onSuccess: (next) => {

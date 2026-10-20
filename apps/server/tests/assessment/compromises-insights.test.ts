@@ -66,13 +66,26 @@ const CITIES = new Map<string, SnapshotCity>([
   ],
 ]);
 
+/** Neighborhoods as the snapshot has them: one row per name the deals use (as in the DB). */
+function neighborhoodsOf(deals: PricedDeal[]) {
+  const keys = new Set(
+    deals.flatMap((deal) => {
+      return deal.neighborhood === null ? [] : [`${deal.cityKey}|${deal.neighborhood}`];
+    }),
+  );
+  return [...keys].map((key, index) => {
+    const [cityKey = '', name = ''] = key.split('|');
+    return { id: index + 1, cityKey, name };
+  });
+}
+
 function compromisesFor(deals: PricedDeal[], wanted = criteria()) {
   const { maxPrice, ...rest } = wanted;
   const baseline = computeFeasibility(buildPool(deals, rest), maxPrice);
   const market = createPricedMarket({
     deals,
     cities: CITIES,
-    neighborhoods: [],
+    neighborhoods: neighborhoodsOf(deals),
     searchNames: new Map(),
     referencePeriod: null,
   });

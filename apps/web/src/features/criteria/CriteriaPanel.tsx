@@ -6,8 +6,7 @@ import {
   type PropertyType,
 } from '@rel/shared';
 import { useId, useRef, type Dispatch } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { CITY_LIST_KEY, fetchCityList, searchCities, searchNeighborhoods } from '../../api/places';
+import { searchCities, searchNeighborhoods, useCityList } from '../../api/places';
 import { Autocomplete } from '../../components/Autocomplete';
 import { ChoiceChip } from '../../components/ChoiceChip';
 import { MobileCollapsible } from '../../components/MobileCollapsible';
@@ -55,13 +54,7 @@ export function CriteriaPanel({ state, dispatch, onReset }: CriteriaPanelProps) 
   const confirmDialog = useRef<HTMLDialogElement>(null);
   const roomsGroup = useId();
   const city = state.city;
-  const cityList = useQuery({
-    queryKey: CITY_LIST_KEY,
-    queryFn: ({ signal }) => {
-      return fetchCityList(signal);
-    },
-    staleTime: 10 * 60_000,
-  });
+  const cityList = useCityList();
   // The slider moves over the points of the tiered scale, not over shekels.
   const budgets = budgetScale(
     Math.max(cityList.data?.budgetMax ?? BUDGET.fallbackMax, state.maxPrice),

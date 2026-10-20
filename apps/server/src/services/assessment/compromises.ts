@@ -137,18 +137,16 @@ function neighborhoodCandidates(context: CompromiseContext): CompromiseCandidate
   }
 
   // The single best other neighborhood in the same city (one card, not a list).
-  const others = new Set(
-    context.deals
-      .filter((deal) => {
-        return deal.cityKey === context.criteria.cityKey && deal.neighborhood !== null;
-      })
-      .map((deal) => {
-        return deal.neighborhood as string;
-      }),
-  );
-  others.delete(chosen);
+  const others = context.market.neighborhoods
+    .filter((neighborhood) => {
+      return neighborhood.cityKey === context.criteria.cityKey && neighborhood.name !== chosen;
+    })
+    .map((neighborhood) => {
+      return neighborhood.name;
+    })
+    .sort();
   let best: CompromiseCandidate | null = null;
-  for (const neighborhood of [...others].sort()) {
+  for (const neighborhood of others) {
     const candidate = makeCandidate(
       context,
       `otherNeighborhood:${neighborhood}`,

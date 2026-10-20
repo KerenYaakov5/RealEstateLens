@@ -14,6 +14,7 @@ import {
 import { AppError } from '../../errors/AppError.js';
 import { LruCache } from '../../lib/lruCache.js';
 import type { Logger } from '../../lib/logger.js';
+import { israelDay } from '../../lib/time.js';
 import type { AiCacheRepository, CachedAnswer } from '../../repositories/aiCache.repository.js';
 import type { AiUsageRepository } from '../../repositories/aiUsage.repository.js';
 import { RECOMMENDATION_CONFIG } from './config.js';
@@ -52,11 +53,6 @@ export interface RecommendationDeps {
 }
 
 type Answer = { kind: 'llm'; picks: RecommendationPickDto[] } | { kind: 'fallback' };
-
-/** "YYYY-MM-DD" in Israel – the quota resets at local midnight. */
-export function israelDay(epochMs: number): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusalem' }).format(epochMs);
-}
 
 /**
  * Personal compromise picks. Order of preference, cheapest first: memory cache → database

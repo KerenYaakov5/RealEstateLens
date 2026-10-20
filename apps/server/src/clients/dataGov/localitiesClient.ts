@@ -14,7 +14,6 @@ export function localitiesSourceLabel(year: number | null): string {
   return `הלמ"ס – קובץ היישובים${year === null ? '' : ` ${year}`} (data.gov.il)`;
 }
 /** Label of the default (2023) file. */
-export const CBS_LOCALITIES_SOURCE = localitiesSourceLabel(2023);
 
 const API = 'https://data.gov.il/api/3/action';
 // data.gov.il rejects requests without a User-Agent.

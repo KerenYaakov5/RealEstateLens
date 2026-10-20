@@ -37,12 +37,9 @@ export class MarketController {
     const market = await this.marketData.getMarket();
     if (search === undefined) {
       cacheBriefly(res);
-      const highest = market.deals.reduce((max, deal) => {
-        return Math.max(max, deal.adjustedPrice);
-      }, 0);
       const body: CityListDto = {
         data: listCities(market),
-        meta: { budgetMax: roundUpToBudgetScale(highest) },
+        meta: { budgetMax: roundUpToBudgetScale(market.indexes.highestPrice) },
       };
       res.json(body);
       return;

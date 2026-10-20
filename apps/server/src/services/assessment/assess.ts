@@ -10,7 +10,7 @@ import {
   type ReferenceDeal,
   type TypicalForBudget,
 } from './insights.js';
-import { buildPool, type PoolCriteria } from './pool.js';
+import { buildPool } from './pool.js';
 import type { PricedMarket } from './market.js';
 
 export interface MarketAssessment {
@@ -49,7 +49,7 @@ export function assess(market: PricedMarket, criteria: MarketCriteria): MarketAs
     feasibility.poolSize < ASSESSMENT_CONFIG.cityLevelFallbackBelow
   ) {
     const { neighborhood: _neighborhood, ...cityWide } = poolCriteria;
-    cityLevel = computeFeasibility(buildPool(market.deals, cityWide as PoolCriteria), maxPrice);
+    cityLevel = computeFeasibility(buildPool(market.deals, cityWide), maxPrice);
   }
 
   return {

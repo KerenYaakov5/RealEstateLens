@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { LlmUnavailableError, type LlmProvider } from '../../src/clients/llm/types.js';
 import type { AppError } from '../../src/errors/AppError.js';
 import { logger } from '../../src/lib/logger.js';
+import { israelDay } from '../../src/lib/time.js';
 import type { AiCacheRepository, CachedAnswer } from '../../src/repositories/aiCache.repository.js';
 import type {
   AiUsageRepository,
@@ -9,7 +10,6 @@ import type {
 } from '../../src/repositories/aiUsage.repository.js';
 import {
   CompromiseRecommendationService,
-  israelDay,
   type RecommendationOptions,
 } from '../../src/services/recommendation/recommendation.service.js';
 import { COMPROMISES, FakeProvider, GOOD_ANSWER } from './builders.js';

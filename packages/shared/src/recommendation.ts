@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { CompromiseDto } from './assessment.js';
+import type { AssessmentRequest, CompromiseDto } from './assessment.js';
 import { FEATURE_LABELS, FEATURES } from './criteria.js';
 
 // Labels take the Hebrew article: "דירגת את החניה…".
@@ -86,7 +86,11 @@ export const recommendationRequestSchema = z.object({
   priorities: prioritiesSchema,
 });
 
-export type RecommendationRequest = z.infer<typeof recommendationRequestSchema>;
+/** What the client sends (validated on the server by recommendationRequestSchema). */
+export interface RecommendationRequest {
+  criteria: AssessmentRequest;
+  priorities: Priorities;
+}
 
 /**
  * Where the picks came from: the model (`llm`), an earlier identical model answer (`cache`), or

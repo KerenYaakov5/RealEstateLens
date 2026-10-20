@@ -2,13 +2,20 @@ import type { AdminUserDto, RegistrationCodeDto } from '@rel/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import { deleteResource, getJson, patchJson, postJson } from '../../api/client';
-import { formatDate } from '../../lib/format';
 
 const CODE_KEY = ['admin', 'registrationCode'] as const;
 const USERS_KEY = ['admin', 'users'] as const;
 
+/** A timestamp's date in Israel: "20.10.2026". */
 function day(iso: string | null): string {
-  return iso === null ? '—' : formatDate(iso.slice(0, 10));
+  return iso === null
+    ? '—'
+    : new Date(iso).toLocaleDateString('he-IL', {
+        timeZone: 'Asia/Jerusalem',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      });
 }
 
 interface ConfirmProps {
