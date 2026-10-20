@@ -37,6 +37,18 @@ const envSchema = z
     RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(120),
     LOGIN_MAX_ATTEMPTS: z.coerce.number().int().positive().default(5),
     LOGIN_WINDOW_MINUTES: z.coerce.number().int().positive().default(15),
+    REGISTRATIONS_PER_HOUR: z.coerce.number().int().positive().default(10),
+
+    // Administrators (comma-separated emails): manage invite codes and users in the app.
+    ADMIN_EMAILS: z
+      .string()
+      .default('')
+      .transform((value) => {
+        return value
+          .split(',')
+          .map((email) => email.trim().toLowerCase())
+          .filter((email) => email.length > 0);
+      }),
 
     // Static reference data: minimum months between checks for a newer published file
     LOCALITIES_CHECK_MONTHS: z.coerce.number().int().positive().default(6),

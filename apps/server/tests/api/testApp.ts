@@ -11,6 +11,7 @@ import { logger } from '../../src/lib/logger.js';
 import { AiCacheRepository } from '../../src/repositories/aiCache.repository.js';
 import { AiUsageRepository } from '../../src/repositories/aiUsage.repository.js';
 import { CityRepository } from '../../src/repositories/city.repository.js';
+import { InviteCodeRepository } from '../../src/repositories/inviteCode.repository.js';
 import { DealRepository } from '../../src/repositories/deal.repository.js';
 import { NeighborhoodRepository } from '../../src/repositories/neighborhood.repository.js';
 import { PriceIndexRepository } from '../../src/repositories/priceIndex.repository.js';
@@ -19,6 +20,7 @@ import { UserRepository } from '../../src/repositories/user.repository.js';
 import { AuthService, hashPassword } from '../../src/services/auth.service.js';
 import { LocalityService } from '../../src/services/locality.service.js';
 import { MarketDataService } from '../../src/services/marketData.service.js';
+import { RegistrationService } from '../../src/services/registration.service.js';
 import {
   CompromiseRecommendationService,
   type RecommendationOptions,
@@ -47,6 +49,8 @@ export interface TestAppSetup {
   options?: Partial<AppOptions>;
   /** Import the real seed file (and official coordinates from the committed snapshot). */
   withSeedData?: boolean;
+  /** Emails with administrator rights. */
+  adminEmails?: string[];
   /** Fake model providers; none by default (= automatic recommendations). */
   llmProviders?: LlmProvider[];
   recommendationOptions?: Partial<RecommendationOptions>;
@@ -94,8 +98,12 @@ export async function createTestApp(setup: TestAppSetup = {}): Promise<TestApp> 
     },
   });
 
+  const auth = new AuthService(users, TEST_SECRET, 24, setup.adminEmails ?? []);
   const app = createApp({
-    auth: new AuthService(users, TEST_SECRET, 24),
+    auth,
+    registrations: new RegistrationService(handle.db, auth),
+    users,
+    inviteCodes: new InviteCodeRepository(handle.db),
     marketData,
     recommendations,
     options: {
@@ -104,6 +112,7 @@ export async function createTestApp(setup: TestAppSetup = {}): Promise<TestApp> 
       rateLimitPerMinute: 1000,
       loginMaxAttempts: 5,
       loginWindowMinutes: 15,
+      registrationsPerHour: 1000,
       webDistPath: null,
       ...setup.options,
     },

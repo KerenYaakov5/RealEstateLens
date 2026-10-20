@@ -34,7 +34,10 @@ const timestamps = {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 };
 
-/** Users are added manually (no sign-up). Passwords are stored only as an Argon2 hash. */
+/**
+ * Users register with an invite code (or are added by the administrator). Passwords are stored
+ * only as an Argon2 hash.
+ */
 export const users = pgTable('users', {
   id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
   /** Stored lower-cased and trimmed. */
@@ -42,6 +45,25 @@ export const users = pgTable('users', {
   passwordHash: text('password_hash').notNull(),
   isActive: boolean('is_active').notNull().default(true),
   lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
+  /** The invite code used to register; null for users added by the administrator. */
+  inviteCodeId: integer('invite_code_id'),
+  ...timestamps,
+});
+
+/**
+ * Invite codes the administrator hands out. Only a SHA-256 hash of the code is stored (like a
+ * password); `hint` (its last characters) tells codes apart in the admin screen.
+ */
+export const inviteCodes = pgTable('invite_codes', {
+  id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+  codeHash: text('code_hash').notNull().unique(),
+  hint: text('hint').notNull(),
+  label: text('label').notNull(),
+  maxUses: integer('max_uses').notNull().default(1),
+  usedCount: integer('used_count').notNull().default(0),
+  expiresAt: timestamp('expires_at', { withTimezone: true }),
+  disabledAt: timestamp('disabled_at', { withTimezone: true }),
+  createdByUserId: integer('created_by_user_id'),
   ...timestamps,
 });
 

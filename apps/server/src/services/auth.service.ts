@@ -1,10 +1,12 @@
 import { hash, verify } from '@node-rs/argon2';
 import { jwtVerify, SignJWT } from 'jose';
-import type { UserRepository } from '../repositories/user.repository.js';
+import { normalizeEmail, type UserRepository } from '../repositories/user.repository.js';
 
 export interface AuthUser {
   id: number;
   email: string;
+  /** Set by ADMIN_EMAILS: may manage invite codes and users. */
+  isAdmin: boolean;
 }
 
 export interface SessionToken {
@@ -30,12 +32,16 @@ export class AuthService {
   private readonly dummyHash: Promise<string>;
   private readonly activeUsers = new Map<number, { user: AuthUser | null; checkedAt: number }>();
 
+  private readonly adminEmails: ReadonlySet<string>;
+
   constructor(
     private readonly users: UserRepository,
     secret: string,
     private readonly sessionTtlHours: number,
+    adminEmails: readonly string[] = [],
     private readonly now: () => number = Date.now,
   ) {
+    this.adminEmails = new Set(adminEmails.map(normalizeEmail));
     this.key = new TextEncoder().encode(secret);
     this.dummyHash = hash('dummy-password-for-timing-only');
   }
@@ -52,7 +58,7 @@ export class AuthService {
       return null;
     }
     await this.users.recordLogin(user.id);
-    return { id: user.id, email: user.email };
+    return this.toAuthUser(user);
   }
 
   async issueToken(user: AuthUser): Promise<SessionToken> {
@@ -87,9 +93,17 @@ export class AuthService {
       return cached.user;
     }
     const record = await this.users.findById(id);
-    const user =
-      record === undefined || !record.isActive ? null : { id: record.id, email: record.email };
+    const user = record === undefined || !record.isActive ? null : this.toAuthUser(record);
     this.activeUsers.set(id, { user, checkedAt: this.now() });
     return user;
+  }
+
+  /** After an administrator blocks or unblocks a user: the next request checks the DB again. */
+  forget(id: number): void {
+    this.activeUsers.delete(id);
+  }
+
+  toAuthUser(record: { id: number; email: string }): AuthUser {
+    return { id: record.id, email: record.email, isAdmin: this.adminEmails.has(record.email) };
   }
 }

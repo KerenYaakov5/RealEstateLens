@@ -49,3 +49,19 @@ export function apiRateLimit(perMinute: number): RequestHandler {
     },
   });
 }
+
+/** Registration attempts per IP and hour – every attempt counts, also wrong invite codes. */
+export function registrationRateLimit(perHour: number): RequestHandler {
+  return rateLimit({
+    windowMs: 60 * 60_000,
+    limit: perHour,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    keyGenerator: (req) => {
+      return ipKeyGenerator(req.ip ?? 'unknown');
+    },
+    handler: (_req, _res, next) => {
+      next(AppError.tooManyRequests('יותר מדי ניסיונות הרשמה, נסו שוב בעוד שעה'));
+    },
+  });
+}

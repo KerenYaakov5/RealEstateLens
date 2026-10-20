@@ -13,6 +13,7 @@ import { logger } from './lib/logger.js';
 import { AiCacheRepository } from './repositories/aiCache.repository.js';
 import { AiUsageRepository } from './repositories/aiUsage.repository.js';
 import { CityRepository } from './repositories/city.repository.js';
+import { InviteCodeRepository } from './repositories/inviteCode.repository.js';
 import { DealRepository } from './repositories/deal.repository.js';
 import { NeighborhoodRepository } from './repositories/neighborhood.repository.js';
 import { PriceIndexRepository } from './repositories/priceIndex.repository.js';
@@ -22,6 +23,7 @@ import { AuthService } from './services/auth.service.js';
 import { LocalityService } from './services/locality.service.js';
 import { MarketDataService } from './services/marketData.service.js';
 import { PriceIndexService } from './services/priceIndex.service.js';
+import { RegistrationService } from './services/registration.service.js';
 import { CompromiseRecommendationService } from './services/recommendation/recommendation.service.js';
 
 const database = createDatabase({
@@ -99,9 +101,23 @@ async function start(): Promise<void> {
     },
   });
 
+  const userRepository = new UserRepository(database.db);
+  const auth = new AuthService(
+    userRepository,
+    env.JWT_SECRET,
+    env.SESSION_TTL_HOURS,
+    env.ADMIN_EMAILS,
+  );
+  if (env.ADMIN_EMAILS.length === 0) {
+    logger.warn('ADMIN_EMAILS is empty – nobody can create invite codes or manage users');
+  }
+
   const isProduction = env.NODE_ENV === 'production';
   const app = createApp({
-    auth: new AuthService(new UserRepository(database.db), env.JWT_SECRET, env.SESSION_TTL_HOURS),
+    auth,
+    registrations: new RegistrationService(database.db, auth),
+    users: userRepository,
+    inviteCodes: new InviteCodeRepository(database.db),
     marketData,
     recommendations,
     options: {
@@ -110,6 +126,7 @@ async function start(): Promise<void> {
       rateLimitPerMinute: env.RATE_LIMIT_PER_MINUTE,
       loginMaxAttempts: env.LOGIN_MAX_ATTEMPTS,
       loginWindowMinutes: env.LOGIN_WINDOW_MINUTES,
+      registrationsPerHour: env.REGISTRATIONS_PER_HOUR,
       webDistPath: env.WEB_DIST_PATH,
     },
   });

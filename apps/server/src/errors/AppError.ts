@@ -23,6 +23,14 @@ export class AppError extends Error {
     return new AppError(401, 'UNAUTHORIZED', message);
   }
 
+  static forbidden(message = 'אין הרשאה לפעולה הזו'): AppError {
+    return new AppError(403, 'FORBIDDEN', message);
+  }
+
+  static conflict(message: string): AppError {
+    return new AppError(409, 'CONFLICT', message);
+  }
+
   static notFound(message = 'המשאב המבוקש לא נמצא'): AppError {
     return new AppError(404, 'NOT_FOUND', message);
   }

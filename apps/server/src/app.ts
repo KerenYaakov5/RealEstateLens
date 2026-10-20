@@ -4,13 +4,15 @@ import helmet from 'helmet';
 import express, { Router, type Express } from 'express';
 import { pinoHttp } from 'pino-http';
 import { MAX_URL_LENGTH } from '@rel/shared';
+import { AdminController } from './controllers/admin.controller.js';
 import { AssessmentController } from './controllers/assessment.controller.js';
 import { MarketController } from './controllers/market.controller.js';
 import { RecommendationController } from './controllers/recommendation.controller.js';
+import { RegistrationController } from './controllers/registration.controller.js';
 import { SessionController } from './controllers/session.controller.js';
 import { logger } from './lib/logger.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
-import { apiRateLimit, loginRateLimit } from './middleware/rateLimits.js';
+import { apiRateLimit, loginRateLimit, registrationRateLimit } from './middleware/rateLimits.js';
 import { requireAuth } from './middleware/requireAuth.js';
 import { limitUrlLength } from './middleware/urlLength.js';
 import { createWebAppRouter } from './middleware/webApp.js';
@@ -22,10 +24,13 @@ import {
 } from './routes/market.routes.js';
 import { createRecommendationRouter } from './routes/recommendation.routes.js';
 import { createSessionRouter } from './routes/session.routes.js';
-import { createUserRouter } from './routes/user.routes.js';
+import { createInviteCodeRouter, createUserRouter } from './routes/user.routes.js';
+import type { InviteCodeRepository } from './repositories/inviteCode.repository.js';
+import type { UserRepository } from './repositories/user.repository.js';
 import type { AuthService } from './services/auth.service.js';
 import { MarketAssessmentService } from './services/marketAssessment.service.js';
 import type { MarketDataService } from './services/marketData.service.js';
+import type { RegistrationService } from './services/registration.service.js';
 import type { CompromiseRecommendationService } from './services/recommendation/recommendation.service.js';
 
 export interface AppOptions {
@@ -35,6 +40,8 @@ export interface AppOptions {
   rateLimitPerMinute: number;
   loginMaxAttempts: number;
   loginWindowMinutes: number;
+  /** Registration attempts per IP and hour (wrong invite codes count too). */
+  registrationsPerHour: number;
   /** Folder of the built web client; null = API only. */
   webDistPath: string | null;
 }
@@ -43,6 +50,9 @@ export interface AppDeps {
   auth: AuthService;
   marketData: MarketDataService;
   recommendations: CompromiseRecommendationService;
+  registrations: RegistrationService;
+  users: UserRepository;
+  inviteCodes: InviteCodeRepository;
   options: AppOptions;
 }
 
@@ -83,17 +93,26 @@ export function createApp(deps: AppDeps): Express {
 
   // Public
   api.use('/health', createHealthRouter());
+  const sessions = new SessionController(deps.auth, { secureCookies: deps.options.secureCookies });
   api.use(
     '/sessions',
     createSessionRouter(
-      new SessionController(deps.auth, { secureCookies: deps.options.secureCookies }),
+      sessions,
       loginRateLimit(deps.options.loginMaxAttempts, deps.options.loginWindowMinutes),
     ),
+  );
+  // Registration with an invite code – public, like login.
+  api.post(
+    '/users',
+    registrationRateLimit(deps.options.registrationsPerHour),
+    new RegistrationController(deps.registrations, sessions).create,
   );
 
   // Everything below requires a logged-in user
   api.use(requireAuth(deps.auth), apiRateLimit(deps.options.rateLimitPerMinute));
-  api.use('/users', createUserRouter(deps.recommendations));
+  const admin = new AdminController(deps.inviteCodes, deps.users, deps.auth);
+  api.use('/users', createUserRouter(deps.recommendations, admin));
+  api.use('/invite-codes', createInviteCodeRouter(admin));
   const market = new MarketController(deps.marketData);
   api.use('/cities', createCityRouter(market));
   api.use('/deals', createDealRouter(market));

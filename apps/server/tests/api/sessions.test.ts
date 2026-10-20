@@ -19,7 +19,7 @@ describe('POST /api/v1/sessions', () => {
     const res = await request(testApp.app).post('/api/v1/sessions').send(TEST_USER);
 
     expect(res.status).toBe(201);
-    expect(res.body.user).toEqual({ email: TEST_USER.email });
+    expect(res.body.user).toEqual({ email: TEST_USER.email, isAdmin: false });
     const cookie = res.headers['set-cookie']?.[0] ?? '';
     expect(cookie).toMatch(/^rel_session=/);
     expect(cookie).toMatch(/HttpOnly/i);
@@ -111,7 +111,7 @@ describe('protected routes', () => {
     const res = await request(testApp.app).get('/api/v1/users/me').set('cookie', cookie);
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ email: TEST_USER.email, aiQuotaLeft: 20 });
+    expect(res.body).toEqual({ email: TEST_USER.email, isAdmin: false, aiQuotaLeft: 20 });
   });
 
   it('rejects a forged or tampered token', async () => {

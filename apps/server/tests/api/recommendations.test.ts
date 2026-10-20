@@ -138,7 +138,7 @@ describe('POST /api/v1/compromise-recommendations', () => {
     expect((res.body as { error: { code: string } }).error.code).toBe('AI_QUOTA_EXCEEDED');
 
     const me = await request(testApp.app).get('/api/v1/users/me').set('cookie', cookie);
-    expect(me.body).toEqual({ email: 'tester@example.com', aiQuotaLeft: 0 });
+    expect(me.body).toEqual({ email: 'tester@example.com', isAdmin: false, aiQuotaLeft: 0 });
   });
 
   it('answers automatically (no model, no quota) when there is nothing to personalize', async () => {
