@@ -3,6 +3,8 @@ import { ApiError, deleteResource, getJson, postJson } from '../api/client';
 
 export interface SessionUser {
   email: string;
+  /** Personal recommendations left today (missing right after login until /users/me). */
+  aiQuotaLeft?: number;
 }
 
 export const SESSION_KEY = ['session'] as const;
@@ -36,6 +38,8 @@ export function useLogin() {
     },
     onSuccess: (result) => {
       queryClient.setQueryData(SESSION_KEY, result.user);
+      // The login answer has no AI quota; /users/me does.
+      void queryClient.invalidateQueries({ queryKey: SESSION_KEY });
     },
   });
 }

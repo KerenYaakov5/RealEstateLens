@@ -1,6 +1,9 @@
-import type { CompromiseDto, MarketAssessmentDto } from '@rel/shared';
+import type { CompromiseDto, MarketAssessmentDto, Priorities } from '@rel/shared';
+import { useSession } from '../../auth/session';
 import type { Place } from '../criteria/criteria';
 import { HouseCard } from '../house/HouseCard';
+import { PersonalizePanel } from '../recommendation/PersonalizePanel';
+import { usePersonalRecommendation } from '../recommendation/usePersonalRecommendation';
 import { CompromiseCards } from './CompromiseCards';
 import { FeasibilityCard } from './FeasibilityCard';
 import { ReferenceDeals } from './ReferenceDeals';
@@ -9,6 +12,8 @@ import type { CriteriaState } from '../criteria/criteria';
 
 interface ResultsProps {
   state: CriteriaState;
+  priorities: Priorities;
+  onChangePriorities: (priorities: Priorities) => void;
   onApplyCompromise: (compromise: CompromiseDto) => void;
   onChooseCity: (city: Place) => void;
 }
@@ -90,8 +95,16 @@ function TypicalForBudget({ assessment }: { assessment: MarketAssessmentDto }) {
   );
 }
 
-export function Results({ state, onApplyCompromise, onChooseCity }: ResultsProps) {
+export function Results({
+  state,
+  priorities,
+  onChangePriorities,
+  onApplyCompromise,
+  onChooseCity,
+}: ResultsProps) {
   const assessment = useAssessment(state);
+  const personal = usePersonalRecommendation(state);
+  const session = useSession();
 
   if (state.city === null) {
     return (
@@ -145,7 +158,20 @@ export function Results({ state, onApplyCompromise, onChooseCity }: ResultsProps
             compromises={data.compromises}
             onApplyCompromise={onApplyCompromise}
           />
-          <CompromiseCards compromises={data.compromises} onApply={onApplyCompromise} />
+          <PersonalizePanel
+            compromises={data.compromises}
+            priorities={priorities}
+            onChange={onChangePriorities}
+            onAsk={personal.ask}
+            isAsking={personal.isAsking}
+            error={personal.error?.message ?? null}
+            quotaLeft={session.data?.aiQuotaLeft}
+          />
+          <CompromiseCards
+            compromises={data.compromises}
+            recommendation={personal.recommendation}
+            onApply={onApplyCompromise}
+          />
           <TypicalForBudget assessment={data} />
           <ReferenceDeals deals={data.referenceDeals} />
         </>
