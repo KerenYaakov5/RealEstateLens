@@ -71,11 +71,14 @@ function DealCard({ deal, tint }: { deal: ReferenceDeal; tint: string }) {
 /** Real past deals that fit the requirements and the budget – the evidence behind the numbers. */
 export function ReferenceDeals({ deals }: { deals: ReferenceDeal[] }) {
   return (
-    <details className="rounded-(--radius-card) bg-surface p-5 shadow-(--shadow-card)">
-      <summary className="cursor-pointer text-lg font-bold">
+    <section
+      aria-label="עסקאות אמת שמתאימות לך"
+      className="rounded-(--radius-card) bg-surface p-5 shadow-(--shadow-card)"
+    >
+      <h2 className="text-lg font-bold">
         עסקאות אמת שמתאימות לך{' '}
         <span className="num text-base font-normal text-muted">({deals.length})</span>
-      </summary>
+      </h2>
 
       {deals.length === 0 ? (
         <p className="mt-3 text-ink-soft">
@@ -88,6 +91,6 @@ export function ReferenceDeals({ deals }: { deals: ReferenceDeal[] }) {
           ))}
         </ul>
       )}
-    </details>
+    </section>
   );
 }

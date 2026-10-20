@@ -1,6 +1,5 @@
 import type { MarketAssessmentDto } from '@rel/shared';
 import { render, screen, within } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { ReferenceDeals } from '../../src/features/assessment/ReferenceDeals';
 
@@ -30,9 +29,8 @@ const DEAL: Deal = {
 };
 
 describe('ReferenceDeals', () => {
-  it('shows each deal as a card with price, place, details and its features', async () => {
+  it('shows each deal as a card with price, place, details and its features – always open', () => {
     render(<ReferenceDeals deals={[DEAL, { ...DEAL, id: 2, dealId: 'D2' }]} />);
-    await userEvent.click(screen.getByText(/עסקאות אמת שמתאימות לך/));
 
     const cards = screen
       .getAllByRole('listitem')
@@ -52,9 +50,8 @@ describe('ReferenceDeals', () => {
     ).toEqual(['ממ"ד', 'מעלית']);
   });
 
-  it('says so when no deal fits the budget', async () => {
+  it('says so when no deal fits the budget', () => {
     render(<ReferenceDeals deals={[]} />);
-    await userEvent.click(screen.getByText(/עסקאות אמת שמתאימות לך/));
 
     expect(
       screen.getByText('לא נמצאו עסקאות עבר שנמכרו עם המאפיינים האלו בתקציב הזה.'),
