@@ -46,7 +46,10 @@ function cacheKey(query: AssessmentQuery): string {
   );
 }
 
-/** The nearest cities that have deals, by official distance – offered when a city has none. */
+/**
+ * The nearest cities that have deals, by official distance – offered when a city has none. Only
+ * within the same "nearby" distance as the nearby-city compromise; none in range → 204.
+ */
 function nearestCitiesWithData(market: PricedMarket, origin: SnapshotCity): NearbyCityDto[] {
   if (origin.location === null) {
     return [];
@@ -59,6 +62,9 @@ function nearestCitiesWithData(market: PricedMarket, origin: SnapshotCity): Near
         return [];
       }
       const km = Math.round(distanceKm(from, city.location) * 10) / 10;
+      if (km > ASSESSMENT_CONFIG.nearbyCityMaxKm) {
+        return [];
+      }
       return [{ id: city.id, name: city.nameHe, distanceKm: km, dealCount }];
     })
     .sort((a, b) => {

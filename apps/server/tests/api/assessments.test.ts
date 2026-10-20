@@ -120,4 +120,21 @@ describe('GET /api/v1/market-assessments', () => {
     expect(some.compromises.length).toBeGreaterThan(0);
     expect(some.notices.map((notice) => notice.code)).not.toContain('NO_ALTERNATIVES');
   });
+
+  it('offers only cities within 25 km when a locality has no deals', async () => {
+    const search = await request(testApp.app)
+      .get(`/api/v1/cities?search=${encodeURIComponent('נשר')}`)
+      .set('cookie', cookie);
+    const nesher = (search.body as { data: { id: number; name: string }[] }).data.find(
+      (city) => city.name === 'נשר',
+    );
+    const res = await get(`cityId=${nesher?.id ?? 0}&maxPrice=2000000`);
+    const body = res.body as MarketAssessmentDto;
+
+    expect(body.notices[0]?.code).toBe('CITY_NO_DATA');
+    expect(body.nearbyCitiesWithData.map((city) => city.name)).toEqual(['חיפה']);
+    for (const city of body.nearbyCitiesWithData) {
+      expect(city.distanceKm).toBeLessThanOrEqual(25);
+    }
+  });
 });

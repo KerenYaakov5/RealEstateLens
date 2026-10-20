@@ -112,8 +112,8 @@ describe('GET /api/v1/cities/:cityId/neighborhoods?search=', () => {
 
 describe('GET /api/v1/market-assessments – when data is missing', () => {
   it('a city without deals: 200 with a notice and the nearest cities that have data', async () => {
-    const roshPinna = await cityIdOf('ראש פינה');
-    const res = await get(`/api/v1/market-assessments?cityId=${roshPinna}&maxPrice=2000000`);
+    const yavne = await cityIdOf('יבנה');
+    const res = await get(`/api/v1/market-assessments?cityId=${yavne}&maxPrice=2000000`);
     const body = res.body as MarketAssessmentDto;
 
     expect(res.status).toBe(200);
@@ -122,6 +122,14 @@ describe('GET /api/v1/market-assessments – when data is missing', () => {
     expect(body.nearbyCitiesWithData.every((city) => city.dealCount > 0)).toBe(true);
     const distances = body.nearbyCitiesWithData.map((city) => city.distanceKm);
     expect(distances).toEqual([...distances].sort((a, b) => a - b));
+  });
+
+  it('a city without deals and no city with deals within 25 km: 204', async () => {
+    const roshPinna = await cityIdOf('ראש פינה');
+
+    const res = await get(`/api/v1/market-assessments?cityId=${roshPinna}&maxPrice=2000000`);
+
+    expect(res.status).toBe(204);
   });
 
   it('a city without deals and without official coordinates: 204', async () => {
