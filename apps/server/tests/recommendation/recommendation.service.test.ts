@@ -329,4 +329,20 @@ describe('CompromiseRecommendationService', () => {
     expect(second.source).toBe('fallback');
     expect(gemini.calls).toHaveLength(1);
   });
+
+  it('orders the model picks by rating, whatever order the model chose', async () => {
+    // The model puts budget (rated 3) before parking (rated 1).
+    const reversed = JSON.stringify({
+      picks: [...(JSON.parse(GOOD_ANSWER) as { picks: unknown[] }).picks].reverse(),
+    });
+    const gemini = new FakeProvider('gemini', [reversed]);
+
+    const result = await service([gemini]).recommend(USER, COMPROMISES, PRIORITIES);
+
+    expect(result.source).toBe('llm');
+    expect(result.picks.map((pick) => pick.compromiseId)).toEqual([
+      'dropFeature:parking',
+      'raiseBudget',
+    ]);
+  });
 });

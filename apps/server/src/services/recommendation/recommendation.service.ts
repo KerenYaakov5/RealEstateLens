@@ -17,7 +17,7 @@ import type { Logger } from '../../lib/logger.js';
 import type { AiCacheRepository, CachedAnswer } from '../../repositories/aiCache.repository.js';
 import type { AiUsageRepository } from '../../repositories/aiUsage.repository.js';
 import { RECOMMENDATION_CONFIG } from './config.js';
-import { fallbackPicks } from './fallback.js';
+import { fallbackPicks, orderByRating } from './fallback.js';
 import {
   buildLlmInput,
   cacheKeyOf,
@@ -151,13 +151,23 @@ export class CompromiseRecommendationService {
         continue;
       }
       try {
-        const picks = await this.askProvider(userId, provider, input);
+        const answered = await this.askProvider(userId, provider, input);
         breaker?.recordSuccess();
-        if (picks === null) {
+        if (answered === null) {
           // The provider answered, but wrongly even after a repair: a second provider would
           // cost more tokens for the same kind of risk, so show the automatic ranking.
           return { kind: 'fallback' };
         }
+        // The model chooses and explains; the order is ours – easiest to give up first.
+        const picks = orderByRating(
+          answered,
+          (pick) => {
+            return input.candidates.find(
+              (candidate) => candidate.compromiseId === pick.compromiseId,
+            );
+          },
+          input.priorities,
+        );
         const answer: CachedAnswer = { picks, provider: provider.name, model: provider.model };
         this.memory.set(key, answer);
         await this.safely('ai_cache write', () => {

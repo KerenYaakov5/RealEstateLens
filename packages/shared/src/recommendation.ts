@@ -44,6 +44,22 @@ export function priorityKeyOf(compromise: Pick<CompromiseDto, 'type' | 'params'>
   }
 }
 
+/**
+ * How a rating reads in a reason: "קל לך לוותר על החניה (1 מתוך 5)". Ratings of 4–5 are
+ * phrased as a concession ("למרות שקשה לך לוותר על…").
+ */
+export function ratingPhrase(key: PriorityKey, rating: number): string {
+  const label = PRIORITY_LABELS[key];
+  const scale = `(${rating} מתוך ${MAX_PRIORITY})`;
+  if (rating >= 4) {
+    return `למרות שקשה לך לוותר על ${label} ${scale}`;
+  }
+  if (rating === 3) {
+    return `קשה לך במידה בינונית לוותר על ${label} ${scale}`;
+  }
+  return `קל לך לוותר על ${label} ${scale}`;
+}
+
 const priority = z.number().int().min(MIN_PRIORITY).max(MAX_PRIORITY);
 
 export const prioritiesSchema = z.partialRecord(z.enum(PRIORITY_KEYS), priority);

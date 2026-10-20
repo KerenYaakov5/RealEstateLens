@@ -2,10 +2,6 @@ import type { CityDto, CitySearchResultDto, NeighborhoodSearchResultDto } from '
 import type { AutocompleteOption } from '../components/Autocomplete';
 import { getJson } from './client';
 
-function dealsHint(dealCount: number, noDataText: string): string {
-  return dealCount === 0 ? noDataText : `${dealCount.toLocaleString('he-IL')} עסקאות`;
-}
-
 /**
  * Every official locality. Suggestions show names only – how many deals we have is shown once a
  * place is chosen (see cityDealCounts).
@@ -32,7 +28,7 @@ export async function cityDealCounts(signal: AbortSignal): Promise<Map<number, n
   return new Map((body?.data ?? []).map((city) => [city.id, city.dealCount] as const));
 }
 
-/** Neighborhoods we have deals for in one city. */
+/** Neighborhoods we have deals for in one city (names only, like the city search). */
 export async function searchNeighborhoods(
   cityId: number,
   term: string,
@@ -46,7 +42,6 @@ export async function searchNeighborhoods(
     return {
       id: neighborhood.id,
       label: neighborhood.name,
-      hint: dealsHint(neighborhood.dealCount, ''),
     };
   });
 }

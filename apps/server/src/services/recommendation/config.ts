@@ -3,7 +3,7 @@
  * must bump PROMPT_VERSION – it is part of the cache key, so old answers stop being served.
  */
 export const RECOMMENDATION_CONFIG = {
-  promptVersion: 6,
+  promptVersion: 7,
   /** Only the best candidates (by improvement) are sent – fewer input tokens, same top picks. */
   maxCandidates: 6,
   maxPicks: 3,

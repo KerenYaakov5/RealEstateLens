@@ -31,8 +31,8 @@ interface PersonalizePanelProps {
 }
 
 /**
- * "התאם לי אישית": the user rates how important each requirement that a compromise would give
- * up is, then asks for a personal recommendation. Only those requirements are listed – rating
+ * "התאם לי אישית": the user rates how hard it is to give up each requirement that a compromise
+ * would relax, then asks for a personal recommendation. Only those requirements are listed – rating
  * anything else could not change the answer.
  */
 export function PersonalizePanel({
@@ -68,7 +68,7 @@ export function PersonalizePanel({
         <span>
           <span className="block">✨ התאם לי אישית</span>
           <span className="block text-sm font-normal text-ink-soft">
-            דרגו מה חשוב לכם, ונבחר את הפשרות שמתאימות לכם
+            סמנו על מה קל לכם לוותר, ונבחר את הפשרות שמתאימות לכם
           </span>
         </span>
         <span aria-hidden="true" className={`transition ${open ? 'rotate-180' : ''}`}>
@@ -78,8 +78,8 @@ export function PersonalizePanel({
       {open && (
         <div id={panelId} className="mt-3 space-y-3">
           <p className="text-sm text-ink-soft">
-            כמה חשוב לך כל אחד מאלה? (1 = פחות חשוב, 5 = חשוב מאוד). נבחר את הפשרות שמתאימות לך, רק
-            על סמך העסקאות שלנו.
+            כמה קשה לך לוותר על כל אחד מאלה? (1 = קל לוותר, 5 = קשה מאוד לוותר). נבחר את הפשרות
+            שמתאימות לך, רק על סמך העסקאות שלנו.
           </p>
           <ul className="space-y-2">
             {keys.map((key) => (
