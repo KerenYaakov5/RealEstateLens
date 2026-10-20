@@ -23,8 +23,8 @@ const STATUS_TEXT: Readonly<Record<HousePartStatus, string>> = {
 };
 
 const STATUS_TONE: Readonly<Record<HousePartStatus, string>> = {
-  full: 'bg-good-soft text-good',
-  partial: 'bg-warn-soft text-warn',
+  full: 'bg-good-soft text-good-ink',
+  partial: 'bg-warn-soft text-warn-ink',
   missing: 'bg-compromise-soft text-compromise',
   unknown: 'bg-sand text-muted',
 };

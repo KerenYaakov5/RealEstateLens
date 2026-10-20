@@ -4,9 +4,9 @@ import { CONFIDENCE_LABELS } from './labels';
 
 const CONFIDENCE_TONE = {
   insufficient: 'bg-sand text-ink-soft',
-  low: 'bg-warn-soft text-warn',
+  low: 'bg-warn-soft text-warn-ink',
   medium: 'bg-brand-soft text-brand-strong',
-  high: 'bg-good-soft text-good',
+  high: 'bg-good-soft text-good-ink',
 } as const;
 
 function rateTone(rate: number): string {

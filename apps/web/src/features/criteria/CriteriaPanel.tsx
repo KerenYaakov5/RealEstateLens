@@ -1,7 +1,6 @@
 import { FEATURE_LABELS, FEATURES, PROPERTY_TYPES, type PropertyType } from '@rel/shared';
-import { useQuery } from '@tanstack/react-query';
 import { useRef, type Dispatch } from 'react';
-import { cityDealCounts, searchCities, searchNeighborhoods } from '../../api/places';
+import { searchCities, searchNeighborhoods } from '../../api/places';
 import { Autocomplete } from '../../components/Autocomplete';
 import { ChoiceChip } from '../../components/ChoiceChip';
 import { MobileCollapsible } from '../../components/MobileCollapsible';
@@ -45,32 +44,6 @@ function neighborhoodText(state: CriteriaState): string {
   return state.neighborhood.kind === 'list' ? state.neighborhood.name : state.neighborhood.text;
 }
 
-/** Shown under the city field once a place is chosen. */
-function CityDealsHint({ city }: { city: { id: number; name: string } }) {
-  const counts = useQuery({
-    queryKey: ['cityDealCounts'],
-    queryFn: ({ signal }) => {
-      return cityDealCounts(signal);
-    },
-    staleTime: 10 * 60_000,
-  });
-  if (counts.data === undefined) {
-    return null;
-  }
-  const dealCount = counts.data.get(city.id) ?? 0;
-  return (
-    <p className="-mt-3 text-xs text-muted" aria-live="polite">
-      {dealCount === 0 ? (
-        `אין לנו עסקאות ב${city.name}`
-      ) : (
-        <>
-          יש לנו <span className="num">{dealCount}</span> עסקאות ב{city.name}
-        </>
-      )}
-    </p>
-  );
-}
-
 export function CriteriaPanel({ state, dispatch, onReset }: CriteriaPanelProps) {
   const confirmDialog = useRef<HTMLDialogElement>(null);
   const city = state.city;
@@ -95,7 +68,6 @@ export function CriteriaPanel({ state, dispatch, onReset }: CriteriaPanelProps) 
           dispatch({ type: 'setCity', city: null });
         }}
       />
-      {city !== null && <CityDealsHint city={city} />}
 
       <Autocomplete
         label="שכונה (לא חובה)"

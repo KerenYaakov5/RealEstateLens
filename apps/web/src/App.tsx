@@ -68,7 +68,7 @@ export function App() {
   }
   if (session.isError) {
     return (
-      <p role="alert" className="py-24 text-center text-bad">
+      <p role="alert" className="py-24 text-center font-medium text-bad-ink">
         {session.error.message}
       </p>
     );

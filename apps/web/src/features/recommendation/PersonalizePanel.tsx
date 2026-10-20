@@ -139,7 +139,10 @@ export function PersonalizePanel({
             )}
           </div>
           {error !== null && (
-            <p role="alert" className="rounded-xl bg-warn-soft px-3 py-2 text-sm text-ink">
+            <p
+              role="alert"
+              className="rounded-xl bg-bad-soft px-3 py-2 text-sm font-medium text-bad-ink"
+            >
               {error}
             </p>
           )}

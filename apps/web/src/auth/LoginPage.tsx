@@ -68,7 +68,10 @@ export function LoginPage() {
           </label>
 
           {errorMessage !== null && (
-            <p role="alert" className="mb-4 rounded-xl bg-bad-soft px-3 py-2 text-sm text-bad">
+            <p
+              role="alert"
+              className="mb-4 rounded-xl bg-bad-soft px-3 py-2 text-sm font-medium text-bad-ink"
+            >
               {errorMessage}
             </p>
           )}

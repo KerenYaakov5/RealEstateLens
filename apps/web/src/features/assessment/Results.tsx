@@ -1,4 +1,6 @@
 import type { CompromiseDto, MarketAssessmentDto, Priorities } from '@rel/shared';
+import { useQuery } from '@tanstack/react-query';
+import { cityDealCounts } from '../../api/places';
 import { useSession } from '../../auth/session';
 import type { Place } from '../criteria/criteria';
 import { HouseCard } from '../house/HouseCard';
@@ -28,12 +30,33 @@ function Notices({ assessment }: { assessment: MarketAssessmentDto }) {
         <li
           key={notice.code}
           role="status"
-          className="rounded-xl border border-warn/30 bg-warn-soft px-4 py-3 text-sm text-ink"
+          className="rounded-xl border border-warn/30 bg-warn-soft px-4 py-3 text-sm font-medium text-warn-ink"
         >
           {notice.message}
         </li>
       ))}
     </ul>
+  );
+}
+
+/** "יש לנו 39 עסקאות עבר בחולון" – part of the results, never shown while typing a search. */
+function CityDeals({ cityId, cityName }: { cityId: number; cityName: string }) {
+  const counts = useQuery({
+    queryKey: ['cityDealCounts'],
+    queryFn: ({ signal }) => {
+      return cityDealCounts(signal);
+    },
+    staleTime: 10 * 60_000,
+  });
+  const dealCount = counts.data?.get(cityId) ?? 0;
+  // A city without deals already gets a notice that says so.
+  if (dealCount === 0) {
+    return null;
+  }
+  return (
+    <p className="text-sm text-muted">
+      יש לנו <span className="num">{dealCount}</span> עסקאות עבר ב{cityName}
+    </p>
   );
 }
 
@@ -125,7 +148,7 @@ export function Results({
   }
   if (assessment.isError) {
     return (
-      <p role="alert" className="rounded-xl bg-bad-soft px-4 py-3 text-bad">
+      <p role="alert" className="rounded-xl bg-bad-soft px-4 py-3 font-medium text-bad-ink">
         {assessment.error.message}
       </p>
     );
@@ -134,10 +157,10 @@ export function Results({
     return (
       <div
         role="status"
-        className="rounded-(--radius-card) bg-surface p-8 text-center shadow-(--shadow-card)"
+        className="rounded-(--radius-card) border border-warn/30 bg-warn-soft p-8 text-center text-warn-ink"
       >
         <p className="text-lg font-bold">אין לנו נתונים על {state.city.name}</p>
-        <p className="mt-1 text-ink-soft">וגם לא על יישובים קרובים אליו. נסו עיר אחרת.</p>
+        <p className="mt-1">וגם לא על יישובים קרובים אליו. נסו עיר אחרת.</p>
       </div>
     );
   }
@@ -148,6 +171,7 @@ export function Results({
       className={`space-y-5 transition-opacity ${assessment.isPlaceholderData ? 'opacity-60' : ''}`}
       aria-busy={assessment.isFetching}
     >
+      <CityDeals cityId={data.city.id} cityName={data.city.name} />
       <Notices assessment={data} />
       <NearbyCities assessment={data} onChooseCity={onChooseCity} />
       {data.nearbyCitiesWithData.length === 0 && (

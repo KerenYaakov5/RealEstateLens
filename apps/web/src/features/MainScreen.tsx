@@ -1,3 +1,4 @@
+import { useStickyTop } from '../lib/useStickyTop';
 import { Results } from './assessment/Results';
 import { CriteriaPanel } from './criteria/CriteriaPanel';
 import { useCriteria } from './criteria/useCriteria';
@@ -10,10 +11,11 @@ import { usePriorities } from './recommendation/usePersonalRecommendation';
 export function MainScreen() {
   const { state, dispatch, reset } = useCriteria();
   const { priorities, setPriorities, reset: resetPriorities } = usePriorities();
+  const { ref: panelRef, top: panelTop } = useStickyTop<HTMLDivElement>();
 
   return (
     <main className="mx-auto grid max-w-6xl gap-6 px-4 py-6 lg:grid-cols-[22rem_1fr] lg:items-start">
-      <div className="lg:sticky lg:top-6">
+      <div ref={panelRef} className="lg:sticky" style={{ top: panelTop }}>
         <CriteriaPanel
           state={state}
           dispatch={dispatch}
