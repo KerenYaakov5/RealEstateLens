@@ -55,7 +55,7 @@ export function PersonalizePanel({
   };
 
   return (
-    <div className="rounded-(--radius-card) bg-surface p-4 shadow-(--shadow-card)">
+    <div className="rounded-(--radius-card) border border-brand/20 bg-brand-soft/60 p-4 shadow-(--shadow-card)">
       <button
         type="button"
         aria-expanded={open}
@@ -65,7 +65,12 @@ export function PersonalizePanel({
         }}
         className="flex w-full items-center justify-between gap-2 text-start font-bold text-brand"
       >
-        <span>✨ התאם לי אישית</span>
+        <span>
+          <span className="block">✨ התאם לי אישית</span>
+          <span className="block text-sm font-normal text-ink-soft">
+            דרגו מה חשוב לכם, ונבחר את הפשרות שמתאימות לכם
+          </span>
+        </span>
         <span aria-hidden="true" className={`transition ${open ? 'rotate-180' : ''}`}>
           ▾
         </span>

@@ -23,11 +23,6 @@ export function formatPercent(share: number): string {
   return `${Math.round(share * 100)}%`;
 }
 
-/** Improvement in match rate as percentage points: 0.18 → "+18". */
-export function formatPoints(delta: number): string {
-  return `+${Math.round(delta * 100)}`;
-}
-
 /** "2026-07-01" → "יולי 2026" */
 export function formatMonth(isoDate: string): string {
   const date = new Date(`${isoDate}T00:00:00Z`);

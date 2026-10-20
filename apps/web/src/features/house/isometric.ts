@@ -13,7 +13,8 @@ export function project(point: Point3, scale: number): [number, number] {
   return [(point.x - point.y) * COS30 * scale, ((point.x + point.y) * SIN30 - point.z) * scale];
 }
 
-function polygon(points: Point3[], scale: number): string {
+/** Any flat polygon in the model, as SVG points. */
+export function polygon(points: Point3[], scale: number): string {
   return points
     .map((point) => {
       const [sx, sy] = project(point, scale);
@@ -108,4 +109,58 @@ export function gableRoof(
       scale,
     ),
   };
+}
+
+/** A rectangle on a wall facing the viewer's left (the plane y = const): a window, a door. */
+export function rectOnLeftWall(
+  y: number,
+  from: { x: number; z: number },
+  to: { x: number; z: number },
+  scale: number,
+): string {
+  return polygon(
+    [
+      { x: from.x, y, z: from.z },
+      { x: to.x, y, z: from.z },
+      { x: to.x, y, z: to.z },
+      { x: from.x, y, z: to.z },
+    ],
+    scale,
+  );
+}
+
+/** A rectangle on a wall facing the viewer's right (the plane x = const). */
+export function rectOnRightWall(
+  x: number,
+  from: { y: number; z: number },
+  to: { y: number; z: number },
+  scale: number,
+): string {
+  return polygon(
+    [
+      { x, y: from.y, z: from.z },
+      { x, y: to.y, z: from.z },
+      { x, y: to.y, z: to.z },
+      { x, y: from.y, z: to.z },
+    ],
+    scale,
+  );
+}
+
+/** A rectangle lying flat at height z: a path, a parking line. */
+export function rectOnFloor(
+  z: number,
+  from: { x: number; y: number },
+  to: { x: number; y: number },
+  scale: number,
+): string {
+  return polygon(
+    [
+      { x: from.x, y: from.y, z },
+      { x: to.x, y: from.y, z },
+      { x: to.x, y: to.y, z },
+      { x: from.x, y: to.y, z },
+    ],
+    scale,
+  );
 }

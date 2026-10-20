@@ -34,9 +34,21 @@ const COMPROMISES = [
 
 describe('CompromiseCards', () => {
   it('shows the default ranking without a label when nothing was asked', () => {
-    render(<CompromiseCards compromises={COMPROMISES} recommendation={null} onApply={vi.fn()} />);
+    render(
+      <CompromiseCards
+        compromises={COMPROMISES}
+        baselineRate={0.2}
+        recommendation={null}
+        onApply={vi.fn()}
+      />,
+    );
 
-    expect(screen.getAllByRole('listitem')).toHaveLength(3);
+    const items = screen.getAllByRole('listitem');
+    expect(items).toHaveLength(3);
+    expect(items[0]).toHaveTextContent('מחיר');
+    expect(items[1]).toHaveTextContent('מאפיינים');
+    expect(items[2]).toHaveTextContent('חדרים');
+    expect(items[0]).toHaveTextContent('עלייה של 20% לעומת 20% בחיפוש הנוכחי');
     expect(screen.queryByText('המלצה אישית')).toBeNull();
     expect(screen.queryByText('המלצה אוטומטית')).toBeNull();
   });
@@ -45,6 +57,7 @@ describe('CompromiseCards', () => {
     render(
       <CompromiseCards
         compromises={COMPROMISES}
+        baselineRate={0.2}
         recommendation={{
           source: 'llm',
           aiQuotaLeft: 4,
@@ -64,10 +77,24 @@ describe('CompromiseCards', () => {
     expect(screen.getByText('המלצה אישית')).toBeInTheDocument();
   });
 
+  it('says when the current search has too few deals to compare with', () => {
+    render(
+      <CompromiseCards
+        compromises={COMPROMISES}
+        baselineRate={null}
+        recommendation={null}
+        onApply={vi.fn()}
+      />,
+    );
+
+    expect(screen.getAllByText('בחיפוש הנוכחי אין מספיק עסקאות להשוואה')).toHaveLength(3);
+  });
+
   it('labels the fallback as automatic', () => {
     render(
       <CompromiseCards
         compromises={COMPROMISES}
+        baselineRate={0.2}
         recommendation={{
           source: 'fallback',
           aiQuotaLeft: 4,

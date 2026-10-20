@@ -169,6 +169,7 @@ export function Results({
           />
           <CompromiseCards
             compromises={data.compromises}
+            baselineRate={data.feasibility.matchRate}
             recommendation={personal.recommendation}
             onApply={onApplyCompromise}
           />

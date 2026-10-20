@@ -14,6 +14,16 @@ export const CONFIDENCE_LABELS: Readonly<Record<Confidence, string>> = {
   high: 'ביטחון גבוה',
 };
 
+/** What a compromise changes, shown above its title. */
+export const COMPROMISE_CATEGORY: Readonly<Record<CompromiseDto['type'], string>> = {
+  dropFeature: 'מאפיינים',
+  fewerRooms: 'חדרים',
+  anyNeighborhood: 'מיקום',
+  otherNeighborhood: 'מיקום',
+  nearbyCity: 'מיקום',
+  raiseBudget: 'מחיר',
+};
+
 /** The card title of a compromise, in plain Hebrew. */
 export function compromiseTitle(compromise: CompromiseDto): string {
   const { params } = compromise;
