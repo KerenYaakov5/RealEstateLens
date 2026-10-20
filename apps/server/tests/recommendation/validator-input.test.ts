@@ -111,17 +111,28 @@ describe('validateAnswer', () => {
 });
 
 describe('fallbackPicks', () => {
-  it('keeps the deterministic order and cites only facts and the user priority', () => {
+  it('puts what the user rated least important first, then the bigger improvement', () => {
+    // parking 1, budget 3, rooms 5 – although raising the budget improves the most.
     const picks = fallbackPicks(input, PRIORITIES);
 
     expect(picks.map((pick) => pick.compromiseId)).toEqual([
+      'dropFeature:parking',
+      'raiseBudget',
+      'fewerRooms',
+    ]);
+    expect(picks[0]?.reason).toBe(
+      'דירגת את החניה בחשיבות 1 מתוך 5. עם השינוי הזה 40% מהעסקאות המתאימות נמכרו בתקציב (8 מתוך 20).',
+    );
+  });
+
+  it('keeps the improvement order when nothing is rated (or ratings are equal)', () => {
+    const unrated = buildLlmInput(COMPROMISES, {});
+
+    expect(fallbackPicks(unrated, {}).map((pick) => pick.compromiseId)).toEqual([
       'raiseBudget',
       'dropFeature:parking',
       'fewerRooms',
     ]);
-    expect(picks[1]?.reason).toBe(
-      'דירגת את החניה בחשיבות 1 מתוך 5. עם השינוי הזה 40% מהעסקאות המתאימות נמכרו בתקציב (8 מתוך 20).',
-    );
   });
 
   it('template reasons pass the same validator rules for numbers', () => {

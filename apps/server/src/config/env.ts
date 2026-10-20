@@ -30,7 +30,8 @@ const envSchema = z
 
     // Sessions
     JWT_SECRET: optionalString(z.string().min(32)),
-    SESSION_TTL_HOURS: z.coerce.number().int().positive().default(168),
+    // Short sessions: a copied cookie stops working within a day; users simply log in again.
+    SESSION_TTL_HOURS: z.coerce.number().int().positive().default(24),
 
     // Rate limits (tunable without a deploy)
     RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(120),

@@ -25,7 +25,9 @@ export function ReferenceDeals({ deals }: { deals: ReferenceDeal[] }) {
       </summary>
 
       {deals.length === 0 ? (
-        <p className="mt-3 text-ink-soft">אין עסקאות שעונות על כל הדרישות בתקציב הזה.</p>
+        <p className="mt-3 text-ink-soft">
+          לא נמצאו עסקאות עבר שנמכרו עם המאפיינים האלו בתקציב הזה.
+        </p>
       ) : (
         <>
           {/* Desktop: a table */}

@@ -19,7 +19,8 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    sourcemap: true,
+    // No source maps: the browser gets only minified code, never the readable sources.
+    sourcemap: false,
   },
   test: {
     environment: 'jsdom',

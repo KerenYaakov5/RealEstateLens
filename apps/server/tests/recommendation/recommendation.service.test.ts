@@ -177,7 +177,7 @@ describe('CompromiseRecommendationService', () => {
     const result = await service([gemini, openai]).recommend(USER, COMPROMISES, PRIORITIES);
 
     expect(result.source).toBe('fallback');
-    expect(result.picks[0]?.compromiseId).toBe('raiseBudget');
+    expect(result.picks[0]?.compromiseId).toBe('dropFeature:parking');
     expect(gemini.calls).toHaveLength(2);
     expect(openai.calls).toHaveLength(0);
     expect(cache.rows.size).toBe(0);
