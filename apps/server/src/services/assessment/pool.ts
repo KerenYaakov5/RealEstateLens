@@ -45,6 +45,12 @@ export function evaluateDeal(deal: PricedDeal, criteria: PoolCriteria): Verdict 
       Math.abs(deal.rooms - wanted) <= ASSESSMENT_CONFIG.roomsTolerance ? 'match' : 'no',
     );
   }
+  if (criteria.minRooms !== undefined) {
+    // "6+" = 6 rooms or more, with the same half-room tolerance as an exact count.
+    verdicts.push(
+      deal.rooms >= criteria.minRooms - ASSESSMENT_CONFIG.roomsTolerance ? 'match' : 'no',
+    );
+  }
   if (criteria.propertyTypes !== undefined) {
     verdicts.push(criteria.propertyTypes.includes(deal.propertyType) ? 'match' : 'no');
   }

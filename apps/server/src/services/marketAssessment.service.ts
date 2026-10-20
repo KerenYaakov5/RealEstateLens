@@ -149,6 +149,7 @@ export class MarketAssessmentService {
       maxPrice: query.maxPrice,
       ...(neighborhood === null ? {} : { neighborhood: neighborhood.name }),
       ...(query.rooms === undefined ? {} : { rooms: query.rooms }),
+      ...(query.minRooms === undefined ? {} : { minRooms: query.minRooms }),
       ...(query.propertyType === undefined ? {} : { propertyTypes: query.propertyType }),
       ...(query.condition === undefined ? {} : { conditions: query.condition }),
       ...(query.minSize === undefined ? {} : { minSizeSqm: query.minSize }),

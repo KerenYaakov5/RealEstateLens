@@ -137,4 +137,27 @@ describe('GET /api/v1/market-assessments', () => {
       expect(city.distanceKm).toBeLessThanOrEqual(25);
     }
   });
+
+  it('"6+" counts every deal from 5.5 rooms up, and offers "5 rooms" as a compromise', async () => {
+    const exact = (await get(`cityId=${holonId}&maxPrice=6000000&rooms=6`))
+      .body as MarketAssessmentDto;
+    const orMore = (await get(`cityId=${holonId}&maxPrice=6000000&minRooms=6`))
+      .body as MarketAssessmentDto;
+    const five = (await get(`cityId=${holonId}&maxPrice=6000000&minRooms=5`))
+      .body as MarketAssessmentDto;
+
+    expect(orMore.feasibility.poolSize).toBeGreaterThanOrEqual(exact.feasibility.poolSize);
+    expect(five.feasibility.poolSize).toBeGreaterThanOrEqual(orMore.feasibility.poolSize);
+    for (const deal of orMore.referenceDeals) {
+      expect(deal.rooms).toBeGreaterThanOrEqual(5.5);
+    }
+    const fewer = orMore.compromises.find((compromise) => compromise.type === 'fewerRooms');
+    if (fewer !== undefined) {
+      expect(fewer.params.rooms).toBe(5);
+    }
+  });
+
+  it('rejects rooms and minRooms together', async () => {
+    expect((await get(`cityId=${holonId}&maxPrice=3000000&rooms=4&minRooms=6`)).status).toBe(400);
+  });
 });

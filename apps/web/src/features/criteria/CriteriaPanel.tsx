@@ -1,11 +1,11 @@
 import { FEATURE_LABELS, FEATURES, PROPERTY_TYPES, type PropertyType } from '@rel/shared';
-import { useRef, type Dispatch } from 'react';
+import { useId, useRef, type Dispatch } from 'react';
 import { searchCities, searchNeighborhoods } from '../../api/places';
 import { Autocomplete } from '../../components/Autocomplete';
 import { ChoiceChip } from '../../components/ChoiceChip';
 import { MobileCollapsible } from '../../components/MobileCollapsible';
 import { formatPriceShort } from '../../lib/format';
-import { BUDGET, type CriteriaAction, type CriteriaState } from './criteria';
+import { BUDGET, roomsChoiceLabel, type CriteriaAction, type CriteriaState } from './criteria';
 import { FeatureToggle } from './FeatureToggle';
 
 const ROOM_CHOICES = [2, 3, 4, 5, 6] as const;
@@ -20,7 +20,7 @@ interface CriteriaPanelProps {
 function choicesSummary(state: CriteriaState): string {
   const parts: string[] = [];
   if (state.rooms !== null) {
-    parts.push(`${state.rooms} חדרים`);
+    parts.push(`${roomsChoiceLabel(state.rooms)} חדרים`);
   }
   for (const feature of FEATURES) {
     const preference = state.features[feature];
@@ -46,6 +46,7 @@ function neighborhoodText(state: CriteriaState): string {
 
 export function CriteriaPanel({ state, dispatch, onReset }: CriteriaPanelProps) {
   const confirmDialog = useRef<HTMLDialogElement>(null);
+  const roomsGroup = useId();
   const city = state.city;
 
   return (
@@ -122,16 +123,17 @@ export function CriteriaPanel({ state, dispatch, onReset }: CriteriaPanelProps) 
                 <ChoiceChip
                   key={rooms ?? 'any'}
                   selected={selected}
+                  slideGroup={roomsGroup}
                   onClick={() => {
                     dispatch({ type: 'setRooms', rooms });
                   }}
                 >
-                  {rooms === null ? 'לא משנה' : rooms}
+                  {rooms === null ? 'לא משנה' : roomsChoiceLabel(rooms)}
                 </ChoiceChip>
               );
             })}
           </div>
-          <p className="mt-1 text-xs text-muted">כולל חצי חדר לכל כיוון (למשל 4 = 3.5 עד 4.5)</p>
+          <p className="mt-1 text-xs text-muted">כולל חצי חדר לכל כיוון</p>
         </fieldset>
 
         <div className="space-y-2.5">
@@ -198,7 +200,7 @@ export function CriteriaPanel({ state, dispatch, onReset }: CriteriaPanelProps) 
           onClick={() => {
             confirmDialog.current?.showModal();
           }}
-          className="rounded-xl border border-line px-4 py-2 text-sm font-medium text-ink-soft transition hover:border-bad hover:bg-bad-soft hover:text-bad"
+          className="rounded-xl border border-bad/40 bg-bad-soft/60 px-4 py-2 text-sm font-medium text-bad-ink transition-colors duration-200 hover:border-bad hover:bg-bad-soft"
         >
           איפוס כל הבחירות
         </button>

@@ -45,6 +45,8 @@ export const assessmentQuerySchema = z
     neighborhood: z.string().trim().min(1).max(100).optional(),
     maxPrice: positiveInt,
     rooms: z.coerce.number().min(1).max(12).multipleOf(0.5).optional(),
+    /** "6+" – at least this many rooms. */
+    minRooms: z.coerce.number().int().min(1).max(12).optional(),
     propertyType: commaList(propertyTypeSchema).optional(),
     condition: commaList(propertyConditionSchema).optional(),
     minSize: positiveInt.optional(),
@@ -67,6 +69,12 @@ export const assessmentQuerySchema = z
   )
   .refine(
     (query) => {
+      return query.rooms === undefined || query.minRooms === undefined;
+    },
+    { message: 'יש לבחור מספר חדרים או "ומעלה", לא את שניהם', path: ['minRooms'] },
+  )
+  .refine(
+    (query) => {
       return query.neighborhoodId === undefined || query.neighborhood === undefined;
     },
     { message: 'יש לבחור שכונה מהרשימה או להקליד שם, לא את שניהם', path: ['neighborhood'] },
@@ -81,6 +89,7 @@ export interface AssessmentRequest {
   neighborhood?: string | undefined;
   maxPrice: number;
   rooms?: number | undefined;
+  minRooms?: number | undefined;
   propertyType?: readonly string[] | undefined;
   condition?: readonly string[] | undefined;
   minSize?: number | undefined;
@@ -100,6 +109,7 @@ export function toAssessmentQueryString(request: AssessmentRequest): string {
   const optional: [string, number | undefined][] = [
     ['neighborhoodId', request.neighborhoodId],
     ['rooms', request.rooms],
+    ['minRooms', request.minRooms],
     ['minSize', request.minSize],
     ['minFloor', request.minFloor],
     ['maxFloor', request.maxFloor],

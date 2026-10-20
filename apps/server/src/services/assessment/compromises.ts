@@ -99,11 +99,13 @@ function dropFeatureCandidates(context: CompromiseContext): CompromiseCandidate[
 }
 
 function fewerRoomsCandidate(context: CompromiseContext): CompromiseCandidate[] {
-  const rooms = context.criteria.rooms;
+  // "6+" relaxes to exactly one room less (5), like an exact count does.
+  const rooms = context.criteria.rooms ?? context.criteria.minRooms;
   if (rooms === undefined || rooms - 1 < 1) {
     return [];
   }
-  const relaxed: PoolCriteria = { ...withoutBudget(context.criteria), rooms: rooms - 1 };
+  const { minRooms: _minRooms, ...base } = withoutBudget(context.criteria);
+  const relaxed: PoolCriteria = { ...base, rooms: rooms - 1 };
   const candidate = makeCandidate(
     context,
     'fewerRooms',

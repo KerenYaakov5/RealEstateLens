@@ -1,4 +1,5 @@
 import type { CompromiseDto, RecommendationDto } from '@rel/shared';
+import { motion } from 'motion/react';
 import type { ReactNode } from 'react';
 import { withIsolatedNumbers } from '../../lib/bidi';
 import { formatPercent } from '../../lib/format';
@@ -73,8 +74,15 @@ export function CompromiseCards({
       </div>
       {personalize !== undefined && <div className="mb-3">{personalize}</div>}
       <ul className="grid gap-3 sm:grid-cols-2">
-        {cards.map(({ compromise, reason }) => (
-          <li key={compromise.id}>
+        {cards.map(({ compromise, reason }, index) => (
+          <motion.li
+            key={compromise.id}
+            // Cards fade in and settle when the list changes (e.g. after "בחרו לי פשרות").
+            layout
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: index * 0.05, ease: 'easeOut' }}
+          >
             <button
               type="button"
               onClick={() => {
@@ -118,7 +126,7 @@ export function CompromiseCards({
                 להחיל את השינוי ←
               </span>
             </button>
-          </li>
+          </motion.li>
         ))}
       </ul>
     </section>

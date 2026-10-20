@@ -7,7 +7,9 @@ import {
   type Priorities,
   type PriorityKey,
 } from '@rel/shared';
+import { AnimatePresence, motion } from 'motion/react';
 import { useId, useState } from 'react';
+import { SlidingHighlight } from '../../components/SlidingHighlight';
 
 const DEFAULT_RATING = 3;
 const RATINGS = Array.from({ length: MAX_PRIORITY - MIN_PRIORITY + 1 }, (_, index) => {
@@ -75,79 +77,97 @@ export function PersonalizePanel({
           ▾
         </span>
       </button>
-      {open && (
-        <div id={panelId} className="mt-3 space-y-3">
-          <p className="text-sm text-ink-soft">
-            כמה קשה לך לוותר על כל אחד מאלה? (1 = קל לוותר, 5 = קשה מאוד לוותר). נבחר את הפשרות
-            שמתאימות לך, רק על סמך העסקאות שלנו.
-          </p>
-          <ul className="space-y-2">
-            {keys.map((key) => (
-              <li key={key} className="flex flex-wrap items-center justify-between gap-2">
-                <span id={`${panelId}-${key}`} className="text-sm font-medium">
-                  {rowLabel(key)}
-                </span>
-                <span
-                  role="radiogroup"
-                  aria-labelledby={`${panelId}-${key}`}
-                  className="inline-flex gap-1"
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            id={panelId}
+            key="ratings"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: 'easeOut' }}
+            className="overflow-hidden"
+          >
+            <div className="mt-3 space-y-3">
+              <p className="text-sm text-ink-soft">
+                כמה קשה לך לוותר על כל אחד מאלה? (1 = קל לוותר, 5 = קשה מאוד לוותר). נבחר את הפשרות
+                שמתאימות לך, רק על סמך העסקאות שלנו.
+              </p>
+              <ul className="space-y-2">
+                {keys.map((key) => (
+                  <li key={key} className="flex flex-wrap items-center justify-between gap-2">
+                    <span id={`${panelId}-${key}`} className="text-sm font-medium">
+                      {rowLabel(key)}
+                    </span>
+                    <span
+                      role="radiogroup"
+                      aria-labelledby={`${panelId}-${key}`}
+                      className="inline-flex gap-1"
+                    >
+                      {RATINGS.map((rating) => {
+                        const selected = ratingOf(key) === rating;
+                        return (
+                          <button
+                            key={rating}
+                            type="button"
+                            role="radio"
+                            aria-checked={selected}
+                            aria-label={`${rating} מתוך ${MAX_PRIORITY}`}
+                            onClick={() => {
+                              onChange({ ...priorities, [key]: rating });
+                            }}
+                            className={`num relative h-8 w-8 rounded-lg bg-sand text-sm font-bold transition-colors duration-200 ${
+                              selected ? 'text-white' : 'text-ink-soft hover:bg-line'
+                            }`}
+                          >
+                            {selected && (
+                              <SlidingHighlight
+                                layoutId={`${panelId}-${key}-rating`}
+                                className="rounded-lg bg-brand"
+                              />
+                            )}
+                            <span className="relative">{rating}</span>
+                          </button>
+                        );
+                      })}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  disabled={isAsking}
+                  onClick={() => {
+                    // Send every listed requirement, including untouched defaults.
+                    const full: Priorities = {};
+                    for (const key of keys) {
+                      full[key] = ratingOf(key);
+                    }
+                    onAsk(full);
+                  }}
+                  className="rounded-xl bg-brand px-4 py-2 text-sm font-bold text-white transition hover:bg-brand-strong disabled:opacity-60"
                 >
-                  {RATINGS.map((rating) => {
-                    const selected = ratingOf(key) === rating;
-                    return (
-                      <button
-                        key={rating}
-                        type="button"
-                        role="radio"
-                        aria-checked={selected}
-                        aria-label={`${rating} מתוך ${MAX_PRIORITY}`}
-                        onClick={() => {
-                          onChange({ ...priorities, [key]: rating });
-                        }}
-                        className={`num h-8 w-8 rounded-lg text-sm font-bold transition ${
-                          selected ? 'bg-brand text-white' : 'bg-sand text-ink-soft hover:bg-line'
-                        }`}
-                      >
-                        {rating}
-                      </button>
-                    );
-                  })}
-                </span>
-              </li>
-            ))}
-          </ul>
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              disabled={isAsking}
-              onClick={() => {
-                // Send every listed requirement, including untouched defaults.
-                const full: Priorities = {};
-                for (const key of keys) {
-                  full[key] = ratingOf(key);
-                }
-                onAsk(full);
-              }}
-              className="rounded-xl bg-brand px-4 py-2 text-sm font-bold text-white transition hover:bg-brand-strong disabled:opacity-60"
-            >
-              {isAsking ? 'בוחר…' : 'בחרו לי פשרות'}
-            </button>
-            {quotaLeft !== undefined && (
-              <span className="text-xs text-muted">
-                נותרו היום <span className="num">{quotaLeft}</span> המלצות אישיות
-              </span>
-            )}
-          </div>
-          {error !== null && (
-            <p
-              role="alert"
-              className="rounded-xl bg-bad-soft px-3 py-2 text-sm font-medium text-bad-ink"
-            >
-              {error}
-            </p>
-          )}
-        </div>
-      )}
+                  {isAsking ? 'בוחר…' : 'בחרו לי פשרות'}
+                </button>
+                {quotaLeft !== undefined && (
+                  <span className="text-xs text-muted">
+                    נותרו היום <span className="num">{quotaLeft}</span> המלצות אישיות
+                  </span>
+                )}
+              </div>
+              {error !== null && (
+                <p
+                  role="alert"
+                  className="rounded-xl bg-bad-soft px-3 py-2 text-sm font-medium text-bad-ink"
+                >
+                  {error}
+                </p>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

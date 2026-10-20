@@ -1,4 +1,6 @@
 import type { FeaturePreference } from '@rel/shared';
+import { useId } from 'react';
+import { SlidingHighlight } from '../../components/SlidingHighlight';
 
 const OPTIONS: { value: FeaturePreference; label: string }[] = [
   { value: 'any', label: 'לא משנה' },
@@ -14,9 +16,10 @@ interface FeatureToggleProps {
 
 /**
  * Three-way choice for a yes/no feature, as an accessible radio group. The three options have
- * equal widths and the same inset, whichever one is selected.
+ * equal widths and the same inset; the selection slides between them.
  */
 export function FeatureToggle({ label, value, onChange }: FeatureToggleProps) {
+  const groupId = useId();
   return (
     <fieldset className="flex items-center justify-between gap-3">
       <legend className="sr-only">{label}</legend>
@@ -29,14 +32,22 @@ export function FeatureToggle({ label, value, onChange }: FeatureToggleProps) {
           return (
             <label
               key={option.value}
-              className={`rounded-lg px-2.5 py-1 text-center text-xs font-medium transition ${
+              className={`relative rounded-lg px-2.5 py-1 text-center text-xs font-medium transition-colors duration-200 ${
                 selected
                   ? option.value === 'required'
-                    ? 'bg-brand text-white shadow-sm'
-                    : 'bg-surface text-ink shadow-sm'
+                    ? 'text-white'
+                    : 'text-ink'
                   : 'text-ink-soft hover:bg-surface/60 hover:text-ink'
               }`}
             >
+              {selected && (
+                <SlidingHighlight
+                  layoutId={`${groupId}-selection`}
+                  className={`rounded-lg shadow-sm ${
+                    option.value === 'required' ? 'bg-brand' : 'bg-surface'
+                  }`}
+                />
+              )}
               <input
                 type="radio"
                 name={label}
@@ -47,7 +58,7 @@ export function FeatureToggle({ label, value, onChange }: FeatureToggleProps) {
                 }}
                 className="sr-only"
               />
-              {option.label}
+              <span className="relative">{option.label}</span>
             </label>
           );
         })}

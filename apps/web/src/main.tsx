@@ -1,4 +1,5 @@
 import { QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MotionConfig } from 'motion/react';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
@@ -39,7 +40,10 @@ if (root === null) {
 createRoot(root).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <App />
+      {/* Every animation honours the system's "reduce motion" setting. */}
+      <MotionConfig reducedMotion="user">
+        <App />
+      </MotionConfig>
     </QueryClientProvider>
   </StrictMode>,
 );

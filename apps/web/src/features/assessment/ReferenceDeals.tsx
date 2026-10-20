@@ -1,4 +1,5 @@
 import { FEATURE_LABELS, FEATURES, type MarketAssessmentDto } from '@rel/shared';
+import { motion } from 'motion/react';
 import { formatDate, formatPrice } from '../../lib/format';
 import { propertyTypeLabel, roomsLabel } from './labels';
 
@@ -23,11 +24,16 @@ function floorText(deal: ReferenceDeal): string | null {
   return deal.floor === 0 ? 'קומת קרקע' : `קומה ${deal.floor} מתוך ${deal.totalFloors}`;
 }
 
-function DealCard({ deal, tint }: { deal: ReferenceDeal; tint: string }) {
+function DealCard({ deal, tint, index }: { deal: ReferenceDeal; tint: string; index: number }) {
   const features = FEATURES.filter((feature) => deal.features[feature] === true);
   const floor = floorText(deal);
   return (
-    <li className={`flex h-full flex-col rounded-xl p-4 ${tint}`}>
+    <motion.li
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, delay: Math.min(index, 6) * 0.04, ease: 'easeOut' }}
+      className={`flex h-full flex-col rounded-xl p-4 ${tint}`}
+    >
       <div className="flex flex-wrap items-baseline justify-between gap-x-3">
         <span className="text-lg font-extrabold">{formatPrice(deal.priceNis)}</span>
         {deal.dealDate !== null && (
@@ -64,7 +70,7 @@ function DealCard({ deal, tint }: { deal: ReferenceDeal; tint: string }) {
           ))}
         </ul>
       )}
-    </li>
+    </motion.li>
   );
 }
 
@@ -87,7 +93,12 @@ export function ReferenceDeals({ deals }: { deals: ReferenceDeal[] }) {
       ) : (
         <ul className="mt-4 grid gap-3 sm:grid-cols-2">
           {deals.map((deal, index) => (
-            <DealCard key={deal.id} deal={deal} tint={TINTS[index % TINTS.length] ?? TINTS[0]} />
+            <DealCard
+              key={deal.id}
+              deal={deal}
+              index={index}
+              tint={TINTS[index % TINTS.length] ?? TINTS[0]}
+            />
           ))}
         </ul>
       )}

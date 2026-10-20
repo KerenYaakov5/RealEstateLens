@@ -22,6 +22,8 @@ export interface MarketCriteria {
   neighborhood?: string;
   maxPrice: number;
   rooms?: number;
+  /** "6+": at least this many rooms (with the same half-room tolerance). Not with `rooms`. */
+  minRooms?: number;
   propertyTypes?: PropertyType[];
   conditions?: PropertyCondition[];
   minSizeSqm?: number;

@@ -28,6 +28,17 @@ export interface CriteriaState {
   features: Record<Feature, FeaturePreference>;
 }
 
+/** The last rooms choice means "this many or more" ("6+"). */
+export const ROOMS_OR_MORE = 6;
+
+/**
+ * "4" / "6+". The "6+" is wrapped in a left-to-right isolate: in Hebrew text the "+" would
+ * otherwise be drawn first ("+6").
+ */
+export function roomsChoiceLabel(rooms: number): string {
+  return rooms >= ROOMS_OR_MORE ? `\u2066${ROOMS_OR_MORE}+\u2069` : String(rooms);
+}
+
 export const BUDGET = { min: 500_000, max: 15_000_000, step: 50_000 } as const;
 
 export const DEFAULT_CRITERIA: CriteriaState = {
@@ -128,7 +139,11 @@ export function toRequest(state: CriteriaState): AssessmentRequest | null {
     maxPrice: state.maxPrice,
     ...(state.neighborhood?.kind === 'list' ? { neighborhoodId: state.neighborhood.id } : {}),
     ...(state.neighborhood?.kind === 'text' ? { neighborhood: state.neighborhood.text } : {}),
-    ...(state.rooms === null ? {} : { rooms: state.rooms }),
+    ...(state.rooms === null
+      ? {}
+      : state.rooms >= ROOMS_OR_MORE
+        ? { minRooms: ROOMS_OR_MORE }
+        : { rooms: state.rooms }),
     ...(state.propertyTypes.length === 0 ? {} : { propertyType: state.propertyTypes }),
     ...(state.minSize === null ? {} : { minSize: state.minSize }),
     features: state.features,

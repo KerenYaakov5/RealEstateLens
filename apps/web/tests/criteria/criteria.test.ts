@@ -5,6 +5,7 @@ import {
   criteriaReducer,
   DEFAULT_CRITERIA,
   parseStoredCriteria,
+  roomsChoiceLabel,
   toRequest,
   type CriteriaState,
 } from '../../src/features/criteria/criteria';
@@ -120,6 +121,15 @@ describe('toRequest', () => {
     expect(
       toRequest({ ...withCity, neighborhood: { kind: 'text', text: 'פלורנטין' } }),
     ).toMatchObject({ neighborhood: 'פלורנטין' });
+  });
+
+  it('sends the last rooms choice as "6 or more"', () => {
+    expect(toRequest({ ...withCity, rooms: 4 })).toMatchObject({ rooms: 4 });
+    const sixPlus = toRequest({ ...withCity, rooms: 6 });
+    expect(sixPlus).toMatchObject({ minRooms: 6 });
+    expect(sixPlus).not.toHaveProperty('rooms');
+    expect(roomsChoiceLabel(6)).toBe('\u20666+\u2069');
+    expect(roomsChoiceLabel(3)).toBe('3');
   });
 });
 

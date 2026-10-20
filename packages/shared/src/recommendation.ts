@@ -71,6 +71,7 @@ export const assessmentRequestSchema = z.object({
   neighborhood: z.string().max(100).optional(),
   maxPrice: z.number().int().positive(),
   rooms: z.number().optional(),
+  minRooms: z.number().int().optional(),
   propertyType: z.array(z.string()).max(10).optional(),
   condition: z.array(z.string()).max(10).optional(),
   minSize: z.number().int().positive().optional(),
