@@ -74,18 +74,19 @@ export const assessmentQuerySchema = z
 
 export type AssessmentQuery = z.infer<typeof assessmentQuerySchema>;
 
+/** Optional fields may be absent or undefined (e.g. straight from a parsed JSON body). */
 export interface AssessmentRequest {
   cityId: number;
-  neighborhoodId?: number;
-  neighborhood?: string;
+  neighborhoodId?: number | undefined;
+  neighborhood?: string | undefined;
   maxPrice: number;
-  rooms?: number;
-  propertyType?: readonly string[];
-  condition?: readonly string[];
-  minSize?: number;
-  minFloor?: number;
-  maxFloor?: number;
-  features?: Partial<Record<Feature, FeaturePreference>>;
+  rooms?: number | undefined;
+  propertyType?: readonly string[] | undefined;
+  condition?: readonly string[] | undefined;
+  minSize?: number | undefined;
+  minFloor?: number | undefined;
+  maxFloor?: number | undefined;
+  features?: Partial<Record<Feature, FeaturePreference>> | undefined;
 }
 
 /**

@@ -111,7 +111,7 @@ describe('protected routes', () => {
     const res = await request(testApp.app).get('/api/v1/users/me').set('cookie', cookie);
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ email: TEST_USER.email });
+    expect(res.body).toEqual({ email: TEST_USER.email, aiQuotaLeft: 20 });
   });
 
   it('rejects a forged or tampered token', async () => {

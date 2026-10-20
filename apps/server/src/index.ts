@@ -2,11 +2,16 @@ import { createApp } from './app.js';
 import { CbsClient } from './clients/cbs/cbsClient.js';
 import { LocalitiesClient } from './clients/dataGov/localitiesClient.js';
 import { HttpClient } from './clients/httpClient.js';
+import { GeminiProvider } from './clients/llm/gemini.js';
+import { OpenAiProvider } from './clients/llm/openai.js';
+import type { LlmProvider } from './clients/llm/types.js';
 import { env } from './config/env.js';
 import { CITY_REFERENCES } from './data/cities.js';
 import { createDatabase } from './db/client.js';
 import { ensureSeeded } from './import/seedService.js';
 import { logger } from './lib/logger.js';
+import { AiCacheRepository } from './repositories/aiCache.repository.js';
+import { AiUsageRepository } from './repositories/aiUsage.repository.js';
 import { CityRepository } from './repositories/city.repository.js';
 import { DealRepository } from './repositories/deal.repository.js';
 import { NeighborhoodRepository } from './repositories/neighborhood.repository.js';
@@ -17,6 +22,7 @@ import { AuthService } from './services/auth.service.js';
 import { LocalityService } from './services/locality.service.js';
 import { MarketDataService } from './services/marketData.service.js';
 import { PriceIndexService } from './services/priceIndex.service.js';
+import { CompromiseRecommendationService } from './services/recommendation/recommendation.service.js';
 
 const database = createDatabase({
   databaseUrl: env.DATABASE_URL,
@@ -67,10 +73,36 @@ async function start(): Promise<void> {
   );
   await marketData.getMarket();
 
+  // Gemini first (cheapest), OpenAI as the second provider; a provider without a key is skipped.
+  const providers: LlmProvider[] = [];
+  if (env.GEMINI_API_KEY !== undefined) {
+    providers.push(new GeminiProvider(env.GEMINI_API_KEY, env.GEMINI_MODEL));
+  }
+  if (env.OPENAI_API_KEY !== undefined) {
+    providers.push(new OpenAiProvider(env.OPENAI_API_KEY, env.OPENAI_MODEL));
+  }
+  logger.info(
+    { enabled: env.LLM_ENABLED, providers: providers.map((provider) => provider.name) },
+    'Personal recommendations',
+  );
+  const recommendations = new CompromiseRecommendationService({
+    providers,
+    cache: new AiCacheRepository(database.db),
+    usage: new AiUsageRepository(database.db),
+    logger,
+    options: {
+      enabled: env.LLM_ENABLED,
+      dailyQuota: env.AI_DAILY_QUOTA,
+      timeoutMs: env.LLM_TIMEOUT_MS,
+      maxOutputTokens: env.LLM_MAX_OUTPUT_TOKENS,
+    },
+  });
+
   const isProduction = env.NODE_ENV === 'production';
   const app = createApp({
     auth: new AuthService(new UserRepository(database.db), env.JWT_SECRET, env.SESSION_TTL_HOURS),
     marketData,
+    recommendations,
     options: {
       secureCookies: isProduction,
       trustProxy: isProduction,

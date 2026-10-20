@@ -39,6 +39,22 @@ const envSchema = z
 
     // Static reference data: minimum months between checks for a newer published file
     LOCALITIES_CHECK_MONTHS: z.coerce.number().int().positive().default(6),
+
+    // Personal recommendations (LLM). LLM_ENABLED=false is the kill switch; a provider without
+    // an API key is skipped. Model ids are configurable because providers retire them.
+    LLM_ENABLED: z
+      .enum(['true', 'false'])
+      .default('true')
+      .transform((value) => {
+        return value === 'true';
+      }),
+    GEMINI_API_KEY: optionalString(z.string().min(1)),
+    GEMINI_MODEL: z.string().min(1).default('gemini-3.1-flash-lite'),
+    OPENAI_API_KEY: optionalString(z.string().min(1)),
+    OPENAI_MODEL: z.string().min(1).default('gpt-5.4-nano'),
+    LLM_TIMEOUT_MS: z.coerce.number().int().positive().default(8000),
+    LLM_MAX_OUTPUT_TOKENS: z.coerce.number().int().positive().default(300),
+    AI_DAILY_QUOTA: z.coerce.number().int().nonnegative().default(20),
   })
   .superRefine((value, ctx) => {
     if (value.NODE_ENV === 'production' && value.JWT_SECRET === undefined) {

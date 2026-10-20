@@ -4,9 +4,12 @@ import type { Express } from 'express';
 import request from 'supertest';
 import { createApp, type AppOptions } from '../../src/app.js';
 import type { LocalitiesClient } from '../../src/clients/dataGov/localitiesClient.js';
+import type { LlmProvider } from '../../src/clients/llm/types.js';
 import { createDatabase, type DatabaseHandle } from '../../src/db/client.js';
 import { seedDeals } from '../../src/import/seedService.js';
 import { logger } from '../../src/lib/logger.js';
+import { AiCacheRepository } from '../../src/repositories/aiCache.repository.js';
+import { AiUsageRepository } from '../../src/repositories/aiUsage.repository.js';
 import { CityRepository } from '../../src/repositories/city.repository.js';
 import { DealRepository } from '../../src/repositories/deal.repository.js';
 import { NeighborhoodRepository } from '../../src/repositories/neighborhood.repository.js';
@@ -16,6 +19,10 @@ import { UserRepository } from '../../src/repositories/user.repository.js';
 import { AuthService, hashPassword } from '../../src/services/auth.service.js';
 import { LocalityService } from '../../src/services/locality.service.js';
 import { MarketDataService } from '../../src/services/marketData.service.js';
+import {
+  CompromiseRecommendationService,
+  type RecommendationOptions,
+} from '../../src/services/recommendation/recommendation.service.js';
 
 export const TEST_USER = { email: 'tester@example.com', password: 'correct-horse-battery' };
 const TEST_SECRET = 'test-secret-that-is-at-least-32-characters-long';
@@ -40,6 +47,9 @@ export interface TestAppSetup {
   options?: Partial<AppOptions>;
   /** Import the real seed file (and official coordinates from the committed snapshot). */
   withSeedData?: boolean;
+  /** Fake model providers; none by default (= automatic recommendations). */
+  llmProviders?: LlmProvider[];
+  recommendationOptions?: Partial<RecommendationOptions>;
 }
 
 /** An app on a fresh in-memory database with one active test user. */
@@ -69,9 +79,24 @@ export async function createTestApp(setup: TestAppSetup = {}): Promise<TestApp> 
     logger,
   );
 
+  const recommendations = new CompromiseRecommendationService({
+    providers: setup.llmProviders ?? [],
+    cache: new AiCacheRepository(handle.db),
+    usage: new AiUsageRepository(handle.db),
+    logger,
+    options: {
+      enabled: true,
+      dailyQuota: 20,
+      timeoutMs: 1000,
+      maxOutputTokens: 300,
+      ...setup.recommendationOptions,
+    },
+  });
+
   const app = createApp({
     auth: new AuthService(users, TEST_SECRET, 24),
     marketData,
+    recommendations,
     options: {
       secureCookies: false,
       trustProxy: false,

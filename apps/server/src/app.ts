@@ -6,6 +6,7 @@ import { pinoHttp } from 'pino-http';
 import { MAX_URL_LENGTH } from '@rel/shared';
 import { AssessmentController } from './controllers/assessment.controller.js';
 import { MarketController } from './controllers/market.controller.js';
+import { RecommendationController } from './controllers/recommendation.controller.js';
 import { SessionController } from './controllers/session.controller.js';
 import { logger } from './lib/logger.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
@@ -19,11 +20,13 @@ import {
   createCityRouter,
   createDealRouter,
 } from './routes/market.routes.js';
+import { createRecommendationRouter } from './routes/recommendation.routes.js';
 import { createSessionRouter } from './routes/session.routes.js';
 import { createUserRouter } from './routes/user.routes.js';
 import type { AuthService } from './services/auth.service.js';
 import { MarketAssessmentService } from './services/marketAssessment.service.js';
 import type { MarketDataService } from './services/marketData.service.js';
+import type { CompromiseRecommendationService } from './services/recommendation/recommendation.service.js';
 
 export interface AppOptions {
   secureCookies: boolean;
@@ -39,6 +42,7 @@ export interface AppOptions {
 export interface AppDeps {
   auth: AuthService;
   marketData: MarketDataService;
+  recommendations: CompromiseRecommendationService;
   options: AppOptions;
 }
 
@@ -89,14 +93,20 @@ export function createApp(deps: AppDeps): Express {
 
   // Everything below requires a logged-in user
   api.use(requireAuth(deps.auth), apiRateLimit(deps.options.rateLimitPerMinute));
-  api.use('/users', createUserRouter());
+  api.use('/users', createUserRouter(deps.recommendations));
   const market = new MarketController(deps.marketData);
   api.use('/cities', createCityRouter(market));
   api.use('/deals', createDealRouter(market));
+  // One instance, so recommendations reuse the assessments' result cache.
+  const assessments = new MarketAssessmentService();
   api.use(
     '/market-assessments',
-    createAssessmentRouter(
-      new AssessmentController(deps.marketData, new MarketAssessmentService()),
+    createAssessmentRouter(new AssessmentController(deps.marketData, assessments)),
+  );
+  api.use(
+    '/compromise-recommendations',
+    createRecommendationRouter(
+      new RecommendationController(deps.marketData, assessments, deps.recommendations),
     ),
   );
 

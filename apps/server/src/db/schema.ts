@@ -5,6 +5,7 @@ import {
   doublePrecision,
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   primaryKey,
@@ -185,4 +186,33 @@ export const importIssues = pgTable(
     message: text('message').notNull(),
   },
   (table) => [index('import_issues_run_idx').on(table.runId)],
+);
+
+/**
+ * Validated model answers (second cache layer, after memory). The key is a hash of exactly what
+ * the model saw plus the prompt version; automatic (fallback) answers are never stored.
+ */
+export const aiCache = pgTable('ai_cache', {
+  key: text('key').primaryKey(),
+  promptVersion: integer('prompt_version').notNull(),
+  picks: jsonb('picks').$type<{ compromiseId: string; reason: string }[]>().notNull(),
+  provider: text('provider').notNull(),
+  model: text('model').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Per user and day (Israel time): personal recommendations (the quota) and model token use. */
+export const aiUsage = pgTable(
+  'ai_usage',
+  {
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    day: date('day', { mode: 'string' }).notNull(),
+    recommendations: integer('recommendations').notNull().default(0),
+    llmCalls: integer('llm_calls').notNull().default(0),
+    inputTokens: integer('input_tokens').notNull().default(0),
+    outputTokens: integer('output_tokens').notNull().default(0),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.day] })],
 );
