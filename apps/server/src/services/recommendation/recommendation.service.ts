@@ -32,6 +32,11 @@ export interface RecommendationOptions {
   /** Kill switch: false = always the automatic recommendation, no model calls. */
   enabled: boolean;
   dailyQuota: number;
+  /**
+   * Model calls per day for all users together (repair attempts included) – a hard ceiling on
+   * cost. Beyond it everyone gets the automatic recommendation until midnight (Israel time).
+   */
+  dailyCallLimit: number;
   timeoutMs: number;
   maxOutputTokens: number;
 }
@@ -64,6 +69,8 @@ export class CompromiseRecommendationService {
   private readonly memory = new LruCache<CachedAnswer>(RECOMMENDATION_CONFIG.memoryCacheEntries);
   private readonly inFlight = new Map<string, Promise<Answer>>();
   private readonly breakers = new Map<string, CircuitBreaker>();
+  /** Calls made by this process today – counts even when the database can't be written. */
+  private callsByDay = { day: '', calls: 0 };
   private readonly now: () => number;
 
   constructor(private readonly deps: RecommendationDeps) {
@@ -112,6 +119,10 @@ export class CompromiseRecommendationService {
         'AI_QUOTA_EXCEEDED',
         'ניצלת את ההמלצות האישיות להיום. הדירוג האוטומטי ממשיך להופיע, ומחר אפשר לבקש שוב.',
       );
+    }
+
+    if (await this.overDailyCallLimit()) {
+      return automatic();
     }
 
     // Identical questions arriving together share one model call.
@@ -202,6 +213,7 @@ export class CompromiseRecommendationService {
     attempt: number,
   ): Promise<LlmResponse> {
     const startedAt = this.now();
+    this.countCall();
     try {
       const response = await provider.complete({
         system: SYSTEM_PROMPT,
@@ -243,6 +255,31 @@ export class CompromiseRecommendationService {
       );
       throw err;
     }
+  }
+
+  private countCall(): void {
+    const day = israelDay(this.now());
+    this.callsByDay =
+      this.callsByDay.day === day ? { day, calls: this.callsByDay.calls + 1 } : { day, calls: 1 };
+  }
+
+  /** The larger of the database total (all instances) and this process's own count. */
+  private async overDailyCallLimit(): Promise<boolean> {
+    const day = israelDay(this.now());
+    const stored =
+      (await this.safely('ai_usage read', () => {
+        return this.deps.usage.llmCallsOn(day);
+      })) ?? 0;
+    const local = this.callsByDay.day === day ? this.callsByDay.calls : 0;
+    const calls = Math.max(stored, local);
+    if (calls >= this.deps.options.dailyCallLimit) {
+      this.deps.logger.warn(
+        { calls, limit: this.deps.options.dailyCallLimit },
+        'Daily LLM call limit reached – automatic recommendation',
+      );
+      return true;
+    }
+    return false;
   }
 
   private async cached(key: string): Promise<CachedAnswer | undefined> {

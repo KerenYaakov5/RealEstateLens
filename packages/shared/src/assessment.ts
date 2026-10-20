@@ -202,7 +202,12 @@ export interface MethodologyDto {
   priceIndexSource: string;
 }
 
-export type AssessmentNoticeCode = 'CITY_NO_DATA' | 'NEIGHBORHOOD_NO_DATA' | 'NEIGHBORHOOD_MATCHED';
+export type AssessmentNoticeCode =
+  | 'CITY_NO_DATA'
+  | 'NEIGHBORHOOD_NO_DATA'
+  | 'NEIGHBORHOOD_MATCHED'
+  /** Nothing matches within budget and no single change (incl. a nearby city) helps. */
+  | 'NO_ALTERNATIVES';
 
 /** Something the user should be told about the data behind the result. */
 export interface AssessmentNoticeDto {

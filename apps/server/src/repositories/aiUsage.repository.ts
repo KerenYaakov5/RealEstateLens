@@ -21,6 +21,15 @@ export class AiUsageRepository {
     return row?.recommendations ?? 0;
   }
 
+  /** Model calls by all users on `day` – the global cost ceiling. */
+  async llmCallsOn(day: string): Promise<number> {
+    const [row] = await this.db
+      .select({ calls: sql<number>`coalesce(sum(${aiUsage.llmCalls}), 0)::int` })
+      .from(aiUsage)
+      .where(eq(aiUsage.day, day));
+    return row?.calls ?? 0;
+  }
+
   /** Adds to the day's counters in one atomic upsert (safe under concurrent requests). */
   async add(userId: number, day: string, increment: UsageIncrement): Promise<void> {
     await this.db

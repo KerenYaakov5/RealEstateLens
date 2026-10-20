@@ -87,6 +87,7 @@ export async function createTestApp(setup: TestAppSetup = {}): Promise<TestApp> 
     options: {
       enabled: true,
       dailyQuota: 20,
+      dailyCallLimit: 1000,
       timeoutMs: 1000,
       maxOutputTokens: 300,
       ...setup.recommendationOptions,

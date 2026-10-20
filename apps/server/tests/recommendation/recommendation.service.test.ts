@@ -31,6 +31,15 @@ class MemoryCacheRepo {
 
 class MemoryUsageRepo {
   readonly totals = new Map<string, UsageIncrement>();
+  llmCallsOn(day: string) {
+    let calls = 0;
+    for (const [key, value] of this.totals) {
+      if (key.endsWith(`|${day}`)) {
+        calls += value.llmCalls;
+      }
+    }
+    return Promise.resolve(calls);
+  }
   recommendationsOn(userId: number, day: string) {
     return Promise.resolve(this.totals.get(`${userId}|${day}`)?.recommendations ?? 0);
   }
@@ -64,7 +73,14 @@ function service(providers: LlmProvider[], options: Partial<RecommendationOption
     cache: cache as unknown as AiCacheRepository,
     usage: usage as unknown as AiUsageRepository,
     logger,
-    options: { enabled: true, dailyQuota: 2, timeoutMs: 1000, maxOutputTokens: 300, ...options },
+    options: {
+      enabled: true,
+      dailyQuota: 2,
+      dailyCallLimit: 100,
+      timeoutMs: 1000,
+      maxOutputTokens: 300,
+      ...options,
+    },
   });
 }
 
@@ -255,13 +271,62 @@ describe('CompromiseRecommendationService', () => {
     const recommendations = new CompromiseRecommendationService({
       providers: [new FakeProvider('gemini', [GOOD_ANSWER])],
       cache: { get: broken, set: broken } as unknown as AiCacheRepository,
-      usage: { recommendationsOn: broken, add: broken } as unknown as AiUsageRepository,
+      usage: {
+        recommendationsOn: broken,
+        add: broken,
+        llmCallsOn: broken,
+      } as unknown as AiUsageRepository,
       logger,
-      options: { enabled: true, dailyQuota: 2, timeoutMs: 1000, maxOutputTokens: 300 },
+      options: {
+        enabled: true,
+        dailyQuota: 2,
+        dailyCallLimit: 100,
+        timeoutMs: 1000,
+        maxOutputTokens: 300,
+      },
     });
 
     await expect(recommendations.recommend(USER, COMPROMISES, PRIORITIES)).resolves.toMatchObject({
       source: 'llm',
     });
+  });
+
+  it('stops calling models for everyone once the daily call limit is reached', async () => {
+    const gemini = new FakeProvider('gemini', [GOOD_ANSWER]);
+    const recommendations = service([gemini], { dailyCallLimit: 1, dailyQuota: 10 });
+    await recommendations.recommend(USER, COMPROMISES, PRIORITIES);
+
+    const other = await recommendations.recommend(8, COMPROMISES, { ...PRIORITIES, rooms: 2 });
+
+    expect(other.source).toBe('fallback');
+    expect(gemini.calls).toHaveLength(1);
+  });
+
+  it('enforces the call limit from its own count when the database is down', async () => {
+    const broken = () => Promise.reject(new Error('db down'));
+    const gemini = new FakeProvider('gemini', [GOOD_ANSWER]);
+    const recommendations = new CompromiseRecommendationService({
+      providers: [gemini],
+      cache: { get: broken, set: broken } as unknown as AiCacheRepository,
+      usage: {
+        recommendationsOn: broken,
+        add: broken,
+        llmCallsOn: broken,
+      } as unknown as AiUsageRepository,
+      logger,
+      options: {
+        enabled: true,
+        dailyQuota: 10,
+        dailyCallLimit: 1,
+        timeoutMs: 1000,
+        maxOutputTokens: 300,
+      },
+    });
+    await recommendations.recommend(USER, COMPROMISES, PRIORITIES);
+
+    const second = await recommendations.recommend(USER, COMPROMISES, { ...PRIORITIES, rooms: 2 });
+
+    expect(second.source).toBe('fallback');
+    expect(gemini.calls).toHaveLength(1);
   });
 });

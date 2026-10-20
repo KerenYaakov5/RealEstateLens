@@ -156,6 +156,19 @@ export class MarketAssessmentService {
       },
     });
 
+    // Nothing within budget and nothing to compromise on – say so instead of an empty screen.
+    if (
+      cityHasDeals &&
+      result.compromises.length === 0 &&
+      (result.feasibility.matchRate === null || result.feasibility.affordableCount === 0)
+    ) {
+      notices.push({
+        code: 'NO_ALTERNATIVES',
+        message:
+          'לא נמצאו התאמות דומות – גם לא בשינוי של דרישה אחת או בערים קרובות. כדאי לשנות את מאפייני החיפוש.',
+      });
+    }
+
     const toDeal = createDealMapper(market);
     return {
       status: 'ok',

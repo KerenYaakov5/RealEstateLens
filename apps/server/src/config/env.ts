@@ -55,6 +55,8 @@ const envSchema = z
     LLM_TIMEOUT_MS: z.coerce.number().int().positive().default(8000),
     LLM_MAX_OUTPUT_TOKENS: z.coerce.number().int().positive().default(300),
     AI_DAILY_QUOTA: z.coerce.number().int().nonnegative().default(20),
+    // Hard ceiling on model calls per day for all users together (cost cap).
+    LLM_DAILY_CALL_LIMIT: z.coerce.number().int().nonnegative().default(300),
   })
   .superRefine((value, ctx) => {
     if (value.NODE_ENV === 'production' && value.JWT_SECRET === undefined) {

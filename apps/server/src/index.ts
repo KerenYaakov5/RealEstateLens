@@ -93,6 +93,7 @@ async function start(): Promise<void> {
     options: {
       enabled: env.LLM_ENABLED,
       dailyQuota: env.AI_DAILY_QUOTA,
+      dailyCallLimit: env.LLM_DAILY_CALL_LIMIT,
       timeoutMs: env.LLM_TIMEOUT_MS,
       maxOutputTokens: env.LLM_MAX_OUTPUT_TOKENS,
     },

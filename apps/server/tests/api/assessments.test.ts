@@ -107,4 +107,17 @@ describe('GET /api/v1/market-assessments', () => {
     expect(res.status).toBe(414);
     expect(res.body.error.code).toBe('URI_TOO_LONG');
   });
+
+  it('tells the user when nothing matches and no single change helps', async () => {
+    // Real data: 5 matching deals in Holon, none within 2.5M, and no compromise passes the rules.
+    const none = (await get(`cityId=${holonId}&maxPrice=2500000&rooms=4&safeRoom=1&parking=1`))
+      .body as MarketAssessmentDto;
+    const some = (await get(`cityId=${holonId}&maxPrice=3000000&rooms=4&safeRoom=1&parking=1`))
+      .body as MarketAssessmentDto;
+
+    expect(none.compromises).toHaveLength(0);
+    expect(none.notices.map((notice) => notice.code)).toContain('NO_ALTERNATIVES');
+    expect(some.compromises.length).toBeGreaterThan(0);
+    expect(some.notices.map((notice) => notice.code)).not.toContain('NO_ALTERNATIVES');
+  });
 });
