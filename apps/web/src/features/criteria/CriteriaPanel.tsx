@@ -1,6 +1,7 @@
 import { FEATURE_LABELS, FEATURES, PROPERTY_TYPES, type PropertyType } from '@rel/shared';
 import { useId, useRef, type Dispatch } from 'react';
-import { searchCities, searchNeighborhoods } from '../../api/places';
+import { useQuery } from '@tanstack/react-query';
+import { CITY_LIST_KEY, fetchCityList, searchCities, searchNeighborhoods } from '../../api/places';
 import { Autocomplete } from '../../components/Autocomplete';
 import { ChoiceChip } from '../../components/ChoiceChip';
 import { MobileCollapsible } from '../../components/MobileCollapsible';
@@ -48,6 +49,14 @@ export function CriteriaPanel({ state, dispatch, onReset }: CriteriaPanelProps) 
   const confirmDialog = useRef<HTMLDialogElement>(null);
   const roomsGroup = useId();
   const city = state.city;
+  const cityList = useQuery({
+    queryKey: CITY_LIST_KEY,
+    queryFn: ({ signal }) => {
+      return fetchCityList(signal);
+    },
+    staleTime: 10 * 60_000,
+  });
+  const budgetMax = Math.max(cityList.data?.budgetMax ?? BUDGET.fallbackMax, state.maxPrice);
 
   return (
     <section
@@ -102,7 +111,7 @@ export function CriteriaPanel({ state, dispatch, onReset }: CriteriaPanelProps) 
           id="budget"
           type="range"
           min={BUDGET.min}
-          max={BUDGET.max}
+          max={budgetMax}
           step={BUDGET.step}
           value={state.maxPrice}
           aria-valuetext={formatPriceShort(state.maxPrice)}

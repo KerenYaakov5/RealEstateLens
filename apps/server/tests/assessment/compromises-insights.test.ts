@@ -110,21 +110,23 @@ describe('findCompromises', () => {
     expect(ids).toEqual(['raiseBudget', 'dropFeature:safeRoom']);
   });
 
-  it('offers raising the budget to a price that was actually paid', () => {
+  it('offers the budget where half the pool was paid, rounded up to a slider step', () => {
+    // The median price paid is 2,100,000 → the slider's next step, 2,500,000.
     const deals = [1_800_000, 2_100_000, 2_400_000, 2_700_000].map((price) => {
       return makePriced({ priceNis: price });
     });
 
-    const raise = compromisesFor(deals, criteria({ maxPrice: 1_900_000 })).find(
+    const raise = compromisesFor(deals, criteria({ maxPrice: 2_000_000 })).find(
       (candidate) => candidate.type === 'raiseBudget',
     );
 
-    expect(raise?.params.newMaxPrice).toBe(2_100_000);
-    expect(raise?.feasibility.matchRate).toBe(0.5);
+    expect(raise?.params.newMaxPrice).toBe(2_500_000);
+    // Figures at the rounded budget: three of four deals, not the two at 2,100,000.
+    expect(raise?.feasibility.matchRate).toBe(0.75);
     expect(raise?.facts).toContainEqual({
       id: 'raiseBudget#budgetIncrease',
       key: 'budgetIncrease',
-      value: 200_000,
+      value: 500_000,
     });
   });
 

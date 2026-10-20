@@ -1,10 +1,10 @@
-import type { CityDto, CitySearchResultDto, NeighborhoodSearchResultDto } from '@rel/shared';
+import type { CityListDto, CitySearchResultDto, NeighborhoodSearchResultDto } from '@rel/shared';
 import type { AutocompleteOption } from '../components/Autocomplete';
 import { getJson } from './client';
 
 /**
  * Every official locality. Suggestions show names only – how many deals we have is shown once a
- * place is chosen (see cityDealCounts).
+ * place is chosen (see fetchCityList).
  */
 export async function searchCities(
   term: string,
@@ -22,10 +22,21 @@ export async function searchCities(
   });
 }
 
-/** Deal counts of the cities we have deals in (any other locality has none). */
-export async function cityDealCounts(signal: AbortSignal): Promise<Map<number, number>> {
-  const body = await getJson<{ data: CityDto[] }>('/cities', signal);
-  return new Map((body?.data ?? []).map((city) => [city.id, city.dealCount] as const));
+export interface CityList {
+  /** Deals per city we have data for (any other locality has none). */
+  dealCounts: Map<number, number>;
+  /** The budget slider's upper end, from the data; null if the server did not say. */
+  budgetMax: number | null;
+}
+
+export const CITY_LIST_KEY = ['cityList'] as const;
+
+export async function fetchCityList(signal: AbortSignal): Promise<CityList> {
+  const body = await getJson<CityListDto>('/cities', signal);
+  return {
+    dealCounts: new Map((body?.data ?? []).map((city) => [city.id, city.dealCount] as const)),
+    budgetMax: body?.meta.budgetMax ?? null,
+  };
 }
 
 /** Neighborhoods we have deals for in one city (names only, like the city search). */

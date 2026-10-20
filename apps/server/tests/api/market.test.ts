@@ -1,4 +1,11 @@
-import type { CityDto, DealDto, NeighborhoodDto, Page } from '@rel/shared';
+import {
+  BUDGET_STEP,
+  type CityDto,
+  type CityListDto,
+  type DealDto,
+  type NeighborhoodDto,
+  type Page,
+} from '@rel/shared';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestApp, loginCookie, type TestApp } from './testApp.js';
@@ -40,6 +47,17 @@ describe('GET /api/v1/cities', () => {
     expect(cities.every((city) => Number.isInteger(city.id) && city.hasOfficialLocation)).toBe(
       true,
     );
+  });
+
+  it('gives the budget slider an upper end: the highest price, rounded up to a step', async () => {
+    const body = (await get('/api/v1/cities')).body as CityListDto;
+    const deals = (await get('/api/v1/deals?pageSize=100&sortBy=price&sortOrder=desc'))
+      .body as Page<DealDto>;
+    const highest = Math.max(...deals.data.map((deal) => deal.adjustedPriceNis));
+
+    expect(body.meta.budgetMax % BUDGET_STEP).toBe(0);
+    expect(body.meta.budgetMax).toBeGreaterThanOrEqual(highest);
+    expect(body.meta.budgetMax - highest).toBeLessThan(BUDGET_STEP);
   });
 
   it('allows short private caching and conditional requests', async () => {

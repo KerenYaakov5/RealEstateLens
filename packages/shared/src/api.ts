@@ -84,6 +84,15 @@ export type MatchKind = 'exact' | 'prefix' | 'word' | 'contains' | 'fuzzy';
 
 // ---- Response shapes ----
 
+/** GET /cities (without search): the cities we have deals in, and the slider's upper end. */
+export interface CityListDto {
+  data: CityDto[];
+  meta: {
+    /** The highest deal price (in today's terms), rounded up to a budget step. */
+    budgetMax: number;
+  };
+}
+
 export interface CityDto {
   id: number;
   name: string;

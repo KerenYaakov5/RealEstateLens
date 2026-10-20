@@ -31,3 +31,12 @@ export interface MarketCriteria {
   maxFloor?: number;
   features: Record<Feature, FeaturePreference>;
 }
+
+/** The budget slider's scale. The server rounds suggested budgets to the same step. */
+export const BUDGET_MIN = 500_000;
+export const BUDGET_STEP = 500_000;
+
+/** 3,889,710 → 4,000,000: the next budget the slider can show. */
+export function roundUpToBudgetStep(value: number): number {
+  return Math.max(BUDGET_MIN, Math.ceil(value / BUDGET_STEP) * BUDGET_STEP);
+}

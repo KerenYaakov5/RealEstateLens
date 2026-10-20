@@ -1,5 +1,6 @@
 import {
   FEATURES,
+  roundUpToBudgetStep,
   type CompromiseType,
   type FactDto as Fact,
   type Feature,
@@ -193,13 +194,14 @@ function nearbyCityCandidates(context: CompromiseContext): CompromiseCandidate[]
 }
 
 /**
- * The budget at which half of the pool becomes affordable – a price that was actually paid.
- * Not offered when that budget is beyond a realistic stretch (maxBudgetRatio × budget).
+ * The budget at which half of the pool becomes affordable – a price that was actually paid,
+ * rounded up to the next budget the slider can show. All figures are computed at that rounded
+ * budget, so they stay true. Not offered beyond a realistic stretch (maxBudgetRatio × budget).
  */
 function raiseBudgetCandidate(context: CompromiseContext): CompromiseCandidate[] {
   const criteria = withoutBudget(context.criteria);
   const pool = buildPool(context.deals, criteria);
-  const target = nearestRank(
+  const paid = nearestRank(
     sortedNumbers(
       pool.deals.map((deal) => {
         return deal.adjustedPrice;
@@ -207,7 +209,11 @@ function raiseBudgetCandidate(context: CompromiseContext): CompromiseCandidate[]
     ),
     ASSESSMENT_CONFIG.budgetTargetShare,
   );
-  if (target === undefined || target <= context.criteria.maxPrice) {
+  if (paid === undefined) {
+    return [];
+  }
+  const target = roundUpToBudgetStep(paid);
+  if (target <= context.criteria.maxPrice) {
     return [];
   }
   if (target > context.criteria.maxPrice * ASSESSMENT_CONFIG.maxBudgetRatio) {

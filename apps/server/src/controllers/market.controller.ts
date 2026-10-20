@@ -1,6 +1,8 @@
 import {
   dealsQuerySchema,
   placeSearchQuerySchema,
+  roundUpToBudgetStep,
+  type CityListDto,
   type CitySearchResultDto,
   type NeighborhoodSearchResultDto,
 } from '@rel/shared';
@@ -35,7 +37,14 @@ export class MarketController {
     const market = await this.marketData.getMarket();
     if (search === undefined) {
       cacheBriefly(res);
-      res.json({ data: listCities(market) });
+      const highest = market.deals.reduce((max, deal) => {
+        return Math.max(max, deal.adjustedPrice);
+      }, 0);
+      const body: CityListDto = {
+        data: listCities(market),
+        meta: { budgetMax: roundUpToBudgetStep(highest) },
+      };
+      res.json(body);
       return;
     }
     const hits = searchCities(market, search);

@@ -1,5 +1,8 @@
 import {
+  BUDGET_MIN,
+  BUDGET_STEP,
   FEATURES,
+  roundUpToBudgetStep,
   type AssessmentRequest,
   type CompromiseDto,
   type Feature,
@@ -39,7 +42,16 @@ export function roomsChoiceLabel(rooms: number): string {
   return rooms >= ROOMS_OR_MORE ? `\u2066${ROOMS_OR_MORE}+\u2069` : String(rooms);
 }
 
-export const BUDGET = { min: 500_000, max: 15_000_000, step: 50_000 } as const;
+/**
+ * The budget slider. Its upper end comes from the data (GET /cities → meta.budgetMax);
+ * `fallbackMax` is used until that arrives, `hardMax` only guards stored values.
+ */
+export const BUDGET = {
+  min: BUDGET_MIN,
+  step: BUDGET_STEP,
+  fallbackMax: 15_000_000,
+  hardMax: 100_000_000,
+} as const;
 
 export const DEFAULT_CRITERIA: CriteriaState = {
   city: null,
@@ -64,8 +76,10 @@ export type CriteriaAction =
   | { type: 'applyCompromise'; compromise: CompromiseDto }
   | { type: 'reset' };
 
+/** On the slider's scale: a whole step, within range. */
 function clampBudget(value: number): number {
-  return Math.min(BUDGET.max, Math.max(BUDGET.min, Math.round(value)));
+  const stepped = Math.round(value / BUDGET.step) * BUDGET.step;
+  return Math.min(BUDGET.hardMax, Math.max(BUDGET.min, stepped));
 }
 
 /** What choosing a compromise card changes in the requirements. */
@@ -92,7 +106,7 @@ function applyCompromise(state: CriteriaState, compromise: CompromiseDto): Crite
     case 'raiseBudget':
       return params.newMaxPrice === undefined
         ? state
-        : { ...state, maxPrice: clampBudget(params.newMaxPrice) };
+        : { ...state, maxPrice: Math.min(BUDGET.hardMax, roundUpToBudgetStep(params.newMaxPrice)) };
   }
 }
 
@@ -161,7 +175,8 @@ const storedSchema = z.object({
       z.object({ kind: z.literal('text'), text: z.string().min(1).max(100) }),
     ])
     .nullable(),
-  maxPrice: z.number().min(BUDGET.min).max(BUDGET.max),
+  // Budgets saved with an older, finer slider are moved to the nearest step.
+  maxPrice: z.number().min(BUDGET.min).max(BUDGET.hardMax).transform(clampBudget),
   rooms: z.number().min(1).max(12).nullable(),
   propertyTypes: z.array(propertyTypeSchema),
   minSize: z.number().int().positive().nullable(),

@@ -1,3 +1,4 @@
+import { BUDGET_STEP } from '@rel/shared';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { FEATURES, type MarketCriteria } from '@rel/shared';
@@ -160,9 +161,12 @@ describe.each(scenarios)('assess on real data: %s', (_name, wanted) => {
         expect(candidate.params.distanceKm).toBeLessThanOrEqual(ASSESSMENT_CONFIG.nearbyCityMaxKm);
       }
       if (candidate.type === 'raiseBudget') {
-        const paid = market.deals.some(
-          (deal) => deal.adjustedPrice === candidate.params.newMaxPrice,
-        );
+        // A paid price rounded up to the slider step: some deal lies within one step below it.
+        const target = candidate.params.newMaxPrice ?? 0;
+        expect(target % BUDGET_STEP).toBe(0);
+        const paid = market.deals.some((deal) => {
+          return deal.adjustedPrice <= target && deal.adjustedPrice > target - BUDGET_STEP;
+        });
         expect(paid).toBe(true);
       }
     }

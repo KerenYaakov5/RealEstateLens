@@ -53,13 +53,18 @@ describe('criteriaReducer', () => {
     expect(next.neighborhood).toBeNull();
   });
 
-  it('keeps the budget inside the slider range', () => {
-    expect(criteriaReducer(withCity, { type: 'setMaxPrice', maxPrice: 1 }).maxPrice).toBe(
-      BUDGET.min,
-    );
-    expect(criteriaReducer(withCity, { type: 'setMaxPrice', maxPrice: 1e10 }).maxPrice).toBe(
-      BUDGET.max,
-    );
+  it('keeps the budget on the slider scale: whole half-million steps, within range', () => {
+    const set = (maxPrice: number) => {
+      return criteriaReducer(withCity, { type: 'setMaxPrice', maxPrice }).maxPrice;
+    };
+    expect(set(1)).toBe(BUDGET.min);
+    expect(set(1e10)).toBe(BUDGET.hardMax);
+    expect(set(2_300_000)).toBe(2_500_000);
+    expect(set(2_200_000)).toBe(2_000_000);
+  });
+
+  it('moves a budget saved with the old, finer slider to the nearest step', () => {
+    expect(parseStoredCriteria({ ...withCity, maxPrice: 2_550_000 }).maxPrice).toBe(2_500_000);
   });
 
   it('toggles property types on and off', () => {
@@ -91,7 +96,9 @@ describe('applying a compromise card', () => {
   });
 
   it('raises the budget', () => {
-    expect(apply('raiseBudget', { newMaxPrice: 3_100_000 }).maxPrice).toBe(3_100_000);
+    // Rounded up, never down: a suggested budget must stay within what was offered or above.
+    expect(apply('raiseBudget', { newMaxPrice: 3_100_000 }).maxPrice).toBe(3_500_000);
+    expect(apply('raiseBudget', { newMaxPrice: 4_000_000 }).maxPrice).toBe(4_000_000);
   });
 
   it('moves to a nearby city and clears the neighborhood', () => {

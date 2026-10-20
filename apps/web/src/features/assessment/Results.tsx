@@ -1,6 +1,6 @@
 import type { CompromiseDto, MarketAssessmentDto, Priorities } from '@rel/shared';
 import { useQuery } from '@tanstack/react-query';
-import { cityDealCounts } from '../../api/places';
+import { CITY_LIST_KEY, fetchCityList } from '../../api/places';
 import { useSession } from '../../auth/session';
 import type { Place } from '../criteria/criteria';
 import { HouseCard } from '../house/HouseCard';
@@ -42,14 +42,14 @@ function Notices({ assessment }: { assessment: MarketAssessmentDto }) {
 /** How many deals we have in the city – shown in the feasibility card once results are in. */
 function useCityDealCount(cityId: number | undefined): number | undefined {
   const counts = useQuery({
-    queryKey: ['cityDealCounts'],
+    queryKey: CITY_LIST_KEY,
     queryFn: ({ signal }) => {
-      return cityDealCounts(signal);
+      return fetchCityList(signal);
     },
     staleTime: 10 * 60_000,
     enabled: cityId !== undefined,
   });
-  return cityId === undefined ? undefined : counts.data?.get(cityId);
+  return cityId === undefined ? undefined : counts.data?.dealCounts.get(cityId);
 }
 
 function NearbyCities({
