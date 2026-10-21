@@ -159,6 +159,11 @@ async function start(): Promise<void> {
 
   const shutdown = (signal: string): void => {
     logger.info({ signal }, 'Shutting down');
+    // Open keep-alive connections can hold server.close() open; the platform waits ~30 s.
+    setTimeout(() => {
+      logger.warn('Shutdown took too long – exiting');
+      process.exit(1);
+    }, 10_000).unref();
     server.close(() => {
       void logSink
         .close()
