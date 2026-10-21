@@ -13,7 +13,6 @@ export const CBS_LOCALITIES_RESOURCE_ID = 'd47a54ff-87f0-44b3-b33a-f284c0c38e5a'
 export function localitiesSourceLabel(year: number | null): string {
   return `הלמ"ס – קובץ היישובים${year === null ? '' : ` ${year}`} (data.gov.il)`;
 }
-/** Label of the default (2023) file. */
 
 const API = 'https://data.gov.il/api/3/action';
 // data.gov.il rejects requests without a User-Agent.
