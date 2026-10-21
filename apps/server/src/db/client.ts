@@ -35,7 +35,15 @@ export interface DatabaseOptions {
 
 export function createDatabase(options: DatabaseOptions): DatabaseHandle {
   if (options.databaseUrl !== undefined) {
-    const pool = new pg.Pool({ connectionString: options.databaseUrl, max: 10 });
+    // Bounded waits: an unreachable database fails a request within seconds (503) instead of
+    // leaving it hanging – pg's default connection timeout is "wait forever".
+    const pool = new pg.Pool({
+      connectionString: options.databaseUrl,
+      max: 10,
+      connectionTimeoutMillis: 5_000,
+      idleTimeoutMillis: 30_000,
+      statement_timeout: 15_000,
+    });
     pool.on('error', (err) => {
       options.logger.error({ err }, 'Postgres pool error');
     });

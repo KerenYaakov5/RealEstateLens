@@ -26,6 +26,42 @@ function clientErrorStatus(err: unknown): number | null {
   return typeof value === 'number' && value >= 400 && value < 500 ? value : null;
 }
 
+/** Network errors and Postgres codes that mean "the database can't be reached right now". */
+const DATABASE_UNAVAILABLE_CODES = new Set([
+  'ECONNREFUSED',
+  'ECONNRESET',
+  'ETIMEDOUT',
+  'ENOTFOUND',
+  'EAI_AGAIN',
+  // Postgres: connection exceptions (08xxx), too many connections, shutting down, query timeout.
+  '08000',
+  '08001',
+  '08003',
+  '08004',
+  '08006',
+  '53300',
+  '57P01',
+  '57P03',
+  '57014',
+]);
+const DATABASE_UNAVAILABLE_MESSAGE =
+  /timeout exceeded when trying to connect|Connection terminated|Client has encountered a connection error/;
+
+/** Walks the `cause` chain (Drizzle wraps the driver's error) for a connection failure. */
+export function isDatabaseUnavailable(err: unknown): boolean {
+  for (let current = err, depth = 0; current instanceof Error && depth < 5; depth++) {
+    const { code } = current as { code?: unknown };
+    if (typeof code === 'string' && DATABASE_UNAVAILABLE_CODES.has(code)) {
+      return true;
+    }
+    if (DATABASE_UNAVAILABLE_MESSAGE.test(current.message)) {
+      return true;
+    }
+    current = current.cause;
+  }
+  return false;
+}
+
 export const notFoundHandler: RequestHandler = (_req, _res, next) => {
   next(AppError.notFound('הנתיב המבוקש לא קיים'));
 };
@@ -64,6 +100,19 @@ export const errorHandler: ErrorRequestHandler = (err: unknown, req, res, _next)
       error: {
         code: CLIENT_ERROR_CODES[clientStatus] ?? 'BAD_REQUEST',
         message: CLIENT_ERROR_MESSAGES[clientStatus] ?? 'הבקשה אינה תקינה',
+      },
+    });
+    return;
+  }
+
+  // Temporary, not a bug in the request: 503 tells the client (and its retry) to try again.
+  if (isDatabaseUnavailable(err)) {
+    req.log.error({ err }, 'Database unavailable');
+    res.set('Retry-After', '30');
+    res.status(503).json({
+      error: {
+        code: 'SERVICE_UNAVAILABLE',
+        message: 'השירות אינו זמין כרגע. נסו שוב בעוד כמה דקות.',
       },
     });
     return;

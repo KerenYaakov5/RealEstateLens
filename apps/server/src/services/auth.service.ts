@@ -22,8 +22,8 @@ export function hashPassword(password: string): Promise<string> {
 const ACTIVE_USER_CACHE_MS = 60_000;
 
 /**
- * Login and session tokens. Users are added manually; there is no sign-up.
- * Sessions are stateless signed JWTs (HS256) carried in an httpOnly cookie.
+ * Login and session tokens. Users register with the registration code (or are added with
+ * `npm run user:add`). Sessions are stateless signed JWTs (HS256) carried in an httpOnly cookie.
  */
 export class AuthService {
   private readonly key: Uint8Array;
@@ -72,27 +72,45 @@ export class AuthService {
     return { token, expiresAt };
   }
 
-  /** Returns the session user, or null for a missing, invalid, expired or deactivated session. */
+  /**
+   * Returns the session user, or null for a missing, invalid, expired or deactivated session.
+   * A database failure is thrown, not turned into null: it is not the user's session that failed
+   * (503, not 401 – a 401 would send everyone back to the login screen).
+   */
   async verifyToken(token: string): Promise<AuthUser | null> {
+    let subject: string | undefined;
     try {
       const { payload } = await jwtVerify(token, this.key, { algorithms: ['HS256'] });
-      const id = Number(payload.sub);
-      if (!Number.isInteger(id)) {
-        return null;
-      }
-      return await this.activeUser(id);
+      subject = payload.sub;
     } catch {
       return null;
     }
+    const id = Number(subject);
+    if (!Number.isInteger(id)) {
+      return null;
+    }
+    return this.activeUser(id);
   }
 
-  /** Memory first, then the DB: a deactivated user is locked out within ACTIVE_USER_CACHE_MS. */
+  /**
+   * Memory first, then the DB: a deactivated user is locked out within ACTIVE_USER_CACHE_MS. If
+   * the DB can't be reached, the last answer is kept (the market is in memory, so the app keeps
+   * working); a user never checked before gets the DB error.
+   */
   private async activeUser(id: number): Promise<AuthUser | null> {
     const cached = this.activeUsers.get(id);
     if (cached !== undefined && this.now() - cached.checkedAt < ACTIVE_USER_CACHE_MS) {
       return cached.user;
     }
-    const record = await this.users.findById(id);
+    let record: Awaited<ReturnType<UserRepository['findById']>>;
+    try {
+      record = await this.users.findById(id);
+    } catch (err) {
+      if (cached !== undefined) {
+        return cached.user;
+      }
+      throw err;
+    }
     const user = record === undefined || !record.isActive ? null : this.toAuthUser(record);
     this.activeUsers.set(id, { user, checkedAt: this.now() });
     return user;
