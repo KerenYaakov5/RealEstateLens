@@ -43,6 +43,34 @@ describe('getJson', () => {
     expect(error).toMatchObject({ status: 404, code: 'NOT_FOUND', message: 'העיר לא נמצאה' });
   });
 
+  it('turns a success that is not JSON (e.g. a proxy page) into a Hebrew error', async () => {
+    mockFetch(new Response('<html>Bad gateway</html>', { status: 200 }));
+
+    await expect(getJson('/cities')).rejects.toMatchObject({
+      code: 'INVALID_RESPONSE',
+      message: 'אירעה שגיאה. נסו שוב בעוד רגע.',
+    });
+  });
+
+  it('keeps the Hebrew message of a 503 while the server is unavailable', async () => {
+    mockFetch(
+      new Response(
+        JSON.stringify({
+          error: {
+            code: 'SERVICE_UNAVAILABLE',
+            message: 'השירות אינו זמין כרגע. נסו שוב בעוד כמה דקות.',
+          },
+        }),
+        { status: 503 },
+      ),
+    );
+
+    await expect(getJson('/cities')).rejects.toMatchObject({
+      status: 503,
+      message: 'השירות אינו זמין כרגע. נסו שוב בעוד כמה דקות.',
+    });
+  });
+
   it('turns a network failure into a friendly Hebrew error', async () => {
     mockFetch(new TypeError('Failed to fetch'));
 

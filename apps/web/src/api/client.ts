@@ -42,6 +42,18 @@ async function send(path: string, init: RequestInit = {}): Promise<Response> {
   }
 }
 
+/**
+ * A success body that is not JSON (e.g. a proxy's HTML page) is an error too – in Hebrew, like
+ * every error the user can see.
+ */
+async function readBody<T>(response: Response): Promise<T> {
+  try {
+    return (await response.json()) as T;
+  } catch {
+    throw new ApiError(response.status, 'INVALID_RESPONSE', UNKNOWN_MESSAGE);
+  }
+}
+
 /** GET a JSON resource. Returns null for 204 No Content (nothing to show). */
 export async function getJson<T>(path: string, signal?: AbortSignal): Promise<T | null> {
   const response = await send(path, signal === undefined ? {} : { signal });
@@ -51,7 +63,7 @@ export async function getJson<T>(path: string, signal?: AbortSignal): Promise<T 
   if (!response.ok) {
     throw await toApiError(response);
   }
-  return (await response.json()) as T;
+  return readBody<T>(response);
 }
 
 export async function postJson<T>(path: string, body: unknown): Promise<T> {
@@ -63,7 +75,7 @@ export async function postJson<T>(path: string, body: unknown): Promise<T> {
   if (!response.ok) {
     throw await toApiError(response);
   }
-  return (await response.json()) as T;
+  return readBody<T>(response);
 }
 
 export async function patchJson<T>(path: string, body: unknown): Promise<T> {
@@ -75,7 +87,7 @@ export async function patchJson<T>(path: string, body: unknown): Promise<T> {
   if (!response.ok) {
     throw await toApiError(response);
   }
-  return (await response.json()) as T;
+  return readBody<T>(response);
 }
 
 export async function deleteResource(path: string): Promise<void> {
