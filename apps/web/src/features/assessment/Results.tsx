@@ -140,8 +140,9 @@ export function Results({
         role="status"
         className="rounded-(--radius-card) border border-warn/30 bg-warn-soft p-8 text-center text-warn-ink"
       >
-        <p className="text-lg font-bold">אין לנו נתונים על {state.city.name}</p>
-        <p className="mt-1">וגם לא על יישובים קרובים אליו. נסו עיר אחרת.</p>
+        <p className="text-lg font-bold">אין לנו עסקאות ב{state.city.name}</p>
+        {/* Only what was checked: a place without official coordinates has no "nearby". */}
+        <p className="mt-1">ולא מצאנו יישוב קרוב שיש לנו עליו עסקאות. נסו עיר אחרת.</p>
       </div>
     );
   }

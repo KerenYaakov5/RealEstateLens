@@ -48,7 +48,8 @@ describe('CompromiseCards', () => {
     expect(items[0]).toHaveTextContent('מחיר');
     expect(items[1]).toHaveTextContent('מאפיינים');
     expect(items[2]).toHaveTextContent('חדרים');
-    expect(items[0]).toHaveTextContent('עלייה של 20% לעומת 20% בחיפוש הנוכחי');
+    expect(items[0]).toHaveTextContent('40%לעומת 20% בחיפוש הנוכחי');
+    expect(items[0]).not.toHaveTextContent('עלייה של');
     expect(screen.queryByText('המלצה אישית')).toBeNull();
     expect(screen.queryByText('המלצה אוטומטית')).toBeNull();
   });

@@ -103,13 +103,14 @@ export function CompromiseCards({
               )}
               {compromise.feasibility.matchRate !== null && (
                 <span className="mt-1 block text-sm text-ink-soft">
+                  {/* Not "an increase of X%": the difference is in percentage points, and
+                      "20% vs 20%" reads as a relative rise. The two rates say it exactly. */}
                   {baselineRate === null ? (
                     'בחיפוש הנוכחי אין מספיק עסקאות להשוואה'
                   ) : (
                     <>
-                      עלייה של{' '}
-                      <span className="num font-bold">{formatPercent(compromise.delta)}</span> לעומת{' '}
-                      <span className="num">{formatPercent(baselineRate)}</span> בחיפוש הנוכחי
+                      לעומת <span className="num font-bold">{formatPercent(baselineRate)}</span>{' '}
+                      בחיפוש הנוכחי
                     </>
                   )}
                 </span>
