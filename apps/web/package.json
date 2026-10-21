@@ -12,6 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@rel/shared": "0.1.0",
     "@tanstack/react-query": "^5.104.4",
     "motion": "^14.4.0",
     "react": "^19.3.1",
