@@ -1,0 +1,39 @@
+# Render Blueprint: one web service that serves the API and the built React app.
+# The database is Supabase (DATABASE_URL). Settings not listed here use the defaults in
+# apps/server/src/config/env.ts.
+services:
+  - type: web
+    name: realestatelens
+    runtime: node
+    plan: free
+    # Same region as the Supabase project (eu-central-1).
+    region: frankfurt
+    branch: main
+    # Deploy a push only after GitHub CI (format, lint, build, typecheck, tests) passed.
+    autoDeployTrigger: checksPass
+    # NODE_ENV=production skips devDependencies, but the build needs them (tsc, vite).
+    buildCommand: npm ci --include=dev && npm run build
+    # Node directly (not through npm), so SIGTERM reaches the server's graceful shutdown.
+    startCommand: node apps/server/dist/index.js
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: NODE_VERSION
+        value: '24'
+      - key: NODE_ENV
+        value: production
+      # The free instance has 512 MB; collect garbage before the platform kills the process.
+      - key: NODE_OPTIONS
+        value: --max-old-space-size=384
+      - key: GEMINI_MODEL
+        value: gemini-3.6-flash
+      # Generated once by Render; changing it logs everyone out and makes the registration
+      # code unreadable (it must then be replaced on the admin screen).
+      - key: JWT_SECRET
+        generateValue: true
+      # Secrets – entered in the Render dashboard when the Blueprint is created.
+      - key: DATABASE_URL
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: ADMIN_EMAILS
+        sync: false
